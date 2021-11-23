@@ -69,7 +69,9 @@ pub fn img_to_ascii(font: &Font, img: &DynamicImage, out_width: usize) -> String
     // edge detection
     // img = img.filter3x3(&vec![-1., 0., 1., -1., 0., 1., -1., 0., 1.]);
 
-    let (width, height) = img.dimensions() as (usize, usize);
+    let (width, height) = img.dimensions();
+    let width = width as usize;
+    let height = height as usize;
     let img = img.to_luma8();
 
     let mut pixels: Vec<f32> = img.pixels().map(|&Luma([x])| (x as f32) / 255.0).collect();
