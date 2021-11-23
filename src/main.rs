@@ -10,7 +10,19 @@ mod convert;
 
 fn main() {
     let mut font = Font::from_bdf(Path::new("fonts/kourier.bdf"));
-    let char_set: HashSet<char> = vec!['+', '.', '/', '\\'].iter().cloned().collect();
+    let alphabet = vec![
+        ' ', '!', '"', '#', '$', '%', '&', '\'', '(', ')',
+        '*', '+', ',', '-', '.', '/', '0', '1', '2', '3',
+        '4', '5', '6', '7', '8', '9', ':', ';', '=', '?',
+        '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
+        'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S',
+        'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\\', ']',
+        '^', '_', '`', 'a', 'b', 'c', 'd', 'e', 'f', 'g',
+        'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
+        'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{',
+        '|', '}', '~'
+    ];
+    let char_set: HashSet<char> = alphabet.iter().cloned().collect();
     font.chars = font.chars.iter().filter(|c| char_set.contains(&c.value)).cloned().collect();
 
     let args: Vec<String> = env::args().collect();
