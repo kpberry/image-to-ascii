@@ -72,7 +72,7 @@ impl Font {
     }
 
     pub fn print(&self) {
-        for c in self.chars {
+        for c in &self.chars {
             println!("{}", c.value);
             for y in 0..c.height {
                 for x in 0..c.width {
