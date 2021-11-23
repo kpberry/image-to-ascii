@@ -1,18 +1,18 @@
 pub struct Character {
     pub value: u8,
-    pub data: Vec<Vec<u8>>,
+    pub glyph: Vec<Vec<u8>>,
 }
 
 impl Character {
     fn new(value: u8, data: Vec<Vec<u8>>) -> Character {
-        Character { value, data }
+        Character { value, glyph: data }
     }
     fn width(&self) -> usize {
-        self.data[0].len()
+        self.glyph[0].len()
     }
 
     fn height(&self) -> usize {
-        self.data.len()
+        self.glyph.len()
     }
 }
 
