@@ -3,7 +3,7 @@ use std::path::Path;
 use image::{AnimationDecoder, DynamicImage};
 use image::codecs::gif::{GifDecoder};
 
-fn read_gif(path: &Path) -> Vec<DynamicImage> {
+pub fn read_gif(path: &Path) -> Vec<DynamicImage> {
     let fp = File::open(path).unwrap();
     let decoder = GifDecoder::new(fp).unwrap();
     let frames = decoder.into_frames();
