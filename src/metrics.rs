@@ -20,6 +20,5 @@ pub fn avg_color_score(xs: &[f32], ys: &[f32]) -> f32 {
 }
 
 pub fn movement_toward_clear(xs: &[f32], ys: &[f32]) -> f32 {
-    let len = xs.len() as f32;
-    (len - xs.iter().zip(ys).map(|(&x, &y)| if y > 0. { 0. } else { x }).sum::<f32>()) / (len - xs.iter().sum::<f32>())
+    -xs.iter().zip(ys).map(|(&x, &y)| if y > 0. { 0. } else { x }).sum::<f32>()
 }
