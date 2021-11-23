@@ -1,3 +1,5 @@
+pub type Metric = fn(&[f32], &[f32]) -> f32;
+
 pub fn jaccard_score(xs: &[f32], ys: &[f32]) -> f32 {
     let intersection: f32 = xs.iter().zip(ys).map(|(x, &y)| x.min(y)).sum();
     let union: f32 = xs.iter().zip(ys).map(|(x, &y)| x.max(y)).sum();

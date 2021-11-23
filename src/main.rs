@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::env;
 use std::path::Path;
 use crate::font::Font;
+use crate::metrics::{avg_color_score, dot_score, jaccard_score, Metric, movement_toward_clear, occlusion_score};
 
 mod font;
 mod metrics;
@@ -26,8 +27,24 @@ fn main() {
     font.chars = font.chars.iter().filter(|c| char_set.contains(&c.value)).cloned().collect();
 
     let args: Vec<String> = env::args().collect();
+
     let filename = &args[1];
-    let width = args[2].parse::<usize>().unwrap_or(150);
+
+    let default_width = String::from("150");
+    let width = args.get(2).unwrap_or(&default_width).parse::<usize>().unwrap();
+
+    let default_metric = String::from("dot");
+    let metric_str = &args.get(3).unwrap_or(&default_metric)[..];
+    let metric: Option<Metric> = match metric_str {
+        "jaccard" => Some(jaccard_score),
+        "dot" => Some(dot_score),
+        "occlusion" => Some(occlusion_score),
+        "color" => Some(avg_color_score),
+        "clear" => Some(movement_toward_clear),
+        _ => None
+    };
+    // if the user specified a metric, don't fall back to the default
+    let metric = metric.expect(&format!("Unsupported metric {}", metric_str));
 
     let path = Path::new(filename);
     let extension = path.extension().unwrap();
@@ -35,12 +52,12 @@ fn main() {
     if extension == "gif" {
         let gif = gif::read_gif(path);
         for img in gif {
-            let ascii = convert::img_to_ascii(&font, &img, width);
+            let ascii = convert::img_to_ascii(&font, &img, metric,width);
             println!("{}[2J{}", 27 as char, ascii);
         }
     } else {
         let img = image::open(path).unwrap();
-        let ascii = convert::img_to_ascii(&font, &img, width);
+        let ascii = convert::img_to_ascii(&font, &img, metric,width);
         println!("{}", ascii);
     }
 }

@@ -1,14 +1,16 @@
 use std::collections::HashMap;
+
 use image::{DynamicImage, GenericImageView, Luma};
 use image::imageops::FilterType;
-use crate::{Font, metrics};
 
-pub fn pixel_chunk_to_ascii(font: &Font, chunk: &[f32], score_fn: fn(&[f32], &[f32]) -> f32) -> char {
+use crate::{Font, Metric};
+
+pub fn pixel_chunk_to_ascii(font: &Font, chunk: &[f32], score_fn: Metric) -> char {
     let scores: HashMap<char, f32> = font.chars.iter().map(|c| (c.value, score_fn(&chunk, &c.bitmap))).collect();
     *scores.keys().max_by(|a, b| scores[a].partial_cmp(&scores[b]).unwrap()).unwrap()
 }
 
-pub fn pixels_to_ascii(font: &Font, pixels: Vec<f32>,
+pub fn pixels_to_ascii(font: &Font, pixels: Vec<f32>, metric: Metric,
                        width: usize, height: usize,
                        out_width: usize, out_height: usize) -> String {
     let chunk_size = font.width * font.height;
@@ -40,7 +42,7 @@ pub fn pixels_to_ascii(font: &Font, pixels: Vec<f32>,
     }
 
     let chars: Vec<char> = chunks.iter()
-        .map(|chunk| pixel_chunk_to_ascii(font, chunk, metrics::movement_toward_clear)).collect();
+        .map(|chunk| pixel_chunk_to_ascii(font, chunk, metric)).collect();
 
     let mut char_rows: Vec<Vec<char>> = Vec::new();
     for j in 0..out_height {
@@ -55,7 +57,7 @@ pub fn pixels_to_ascii(font: &Font, pixels: Vec<f32>,
     result
 }
 
-pub fn img_to_ascii(font: &Font, img: &DynamicImage, out_width: usize) -> String {
+pub fn img_to_ascii(font: &Font, img: &DynamicImage, metric: Metric, out_width: usize) -> String {
     let (width, height) = img.dimensions();
 
     let resize_width = out_width * font.width;
@@ -78,5 +80,5 @@ pub fn img_to_ascii(font: &Font, img: &DynamicImage, out_width: usize) -> String
     let pixels_mean = (pixels.iter().fold(0.0, |acc, x| acc + x) as f64 / pixels.len() as f64) as f32;
     pixels = pixels.iter().map(|x| (x - pixels_mean) / pixels_mean).collect();
 
-    pixels_to_ascii(font, pixels, width, height, out_width, out_height)
+    pixels_to_ascii(font, pixels, metric, width, height, out_width, out_height)
 }
