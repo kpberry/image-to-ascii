@@ -1,23 +1,19 @@
+use std::path::Path;
+
 pub struct Character {
-    pub value: u8,
-    pub glyph: Vec<Vec<u8>>,
-    pub flat_glyph: Vec<u8>
+    pub value: char,
+    pub bitmap: Vec<bool>,
+    pub width: usize,
+    pub height: usize
 }
 
 impl Character {
-    fn new(value: u8, glyph: Vec<Vec<u8>>) -> Character {
-        Character {
-            value,
-            glyph: glyph.clone(),
-            flat_glyph: glyph.iter().cloned().flatten().collect()
-        }
-    }
-    fn width(&self) -> usize {
-        self.glyph[0].len()
+    pub fn new(value: char, bitmap: Vec<bool>, width: usize, height: usize) -> Character {
+        Character { value, bitmap, width, height }
     }
 
-    fn height(&self) -> usize {
-        self.glyph.len()
+    pub fn get(&self, x: usize, y: usize) -> bool {
+        self.bitmap[y * self.width + x]
     }
 }
 
@@ -29,8 +25,8 @@ pub struct Font {
 
 impl Font {
     pub fn new(chars: Vec<Character>) -> Font {
-        let min_height = chars.iter().map(|c| c.height()).min().unwrap();
-        let max_height = chars.iter().map(|c| c.height()).max().unwrap();
+        let min_height = chars.iter().map(|c| c.height).min().unwrap();
+        let max_height = chars.iter().map(|c| c.height).max().unwrap();
         if max_height != min_height {
             panic!(
                 "All Characters must have the same height; found values between {} and {}",
@@ -38,8 +34,8 @@ impl Font {
             )
         }
 
-        let min_width = chars.iter().map(|c| c.width()).min().unwrap();
-        let max_width = chars.iter().map(|c| c.width()).max().unwrap();
+        let min_width = chars.iter().map(|c| c.width).min().unwrap();
+        let max_width = chars.iter().map(|c| c.width).max().unwrap();
         if max_width != min_width {
             panic!(
                 "All Characters must have the same width; found values between {} and {}",
@@ -52,5 +48,26 @@ impl Font {
             height: min_height,
             chars,
         }
+    }
+
+    pub fn from_bdf(path: &Path) -> Font {
+        let font: bdf::Font = bdf::open(path).unwrap();
+        let mut chars: Vec<Character> = font.glyphs().iter().map(
+            |(character, glyph)| {
+                let value = *character;
+                let width = glyph.width() as usize;
+                let height = glyph.height() as usize;
+                let mut bitmap = Vec::new();
+                for y in 0..(height as u32) {
+                    for x in 0..(width as u32) {
+                        bitmap.push(glyph.get(x, y));
+                    }
+                }
+                Character::new(value, bitmap, width, height)
+            }
+        ).collect();
+        chars.sort_by_key(|c| c.value as u8);
+
+        Font::new(chars)
     }
 }
