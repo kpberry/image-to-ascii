@@ -20,12 +20,12 @@ pub fn pixels_to_ascii(font: &Font, pixels: Vec<f32>,
     let mut chunks: Vec<Vec<f32>> = Vec::with_capacity(vertical_chunks * horizontal_chunks);
     let mut y_offset = 0;
     let mut x_offset = 0;
-    for y in (0..height).step_by(font.height) {
+    for _ in 0..vertical_chunks {
         let mut chunk_row: Vec<Vec<f32>> = (0..horizontal_chunks)
             .map(|_| Vec::with_capacity(chunk_size)).collect();
 
         for _ in 0..font.height {
-            for x in (0..width).step_by(font.width) {
+            for x in 0..horizontal_chunks {
                 let start = y_offset + x_offset;
                 let end = start + font.width;
                 let chunk_pixel_row = &pixels[start..end];
@@ -33,6 +33,7 @@ pub fn pixels_to_ascii(font: &Font, pixels: Vec<f32>,
                 x_offset += font.width;
             }
             y_offset += width;
+            x_offset = 0;
         }
 
         chunks.extend(chunk_row);
