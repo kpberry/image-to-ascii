@@ -2,17 +2,17 @@ use std::path::Path;
 
 pub struct Character {
     pub value: char,
-    pub bitmap: Vec<bool>,
+    pub bitmap: Vec<f32>,
     pub width: usize,
     pub height: usize
 }
 
 impl Character {
-    pub fn new(value: char, bitmap: Vec<bool>, width: usize, height: usize) -> Character {
+    pub fn new(value: char, bitmap: Vec<f32>, width: usize, height: usize) -> Character {
         Character { value, bitmap, width, height }
     }
 
-    pub fn get(&self, x: usize, y: usize) -> bool {
+    pub fn get(&self, x: usize, y: usize) -> f32 {
         self.bitmap[y * self.width + x]
     }
 }
@@ -60,7 +60,7 @@ impl Font {
                 let mut bitmap = Vec::new();
                 for y in 0..(height as u32) {
                     for x in 0..(width as u32) {
-                        bitmap.push(glyph.get(x, y));
+                        bitmap.push(if glyph.get(x, y) { 1. } else { 0. });
                     }
                 }
                 Character::new(value, bitmap, width, height)
@@ -69,5 +69,21 @@ impl Font {
         chars.sort_by_key(|c| c.value as u8);
 
         Font::new(chars)
+    }
+
+    pub fn print(&self) {
+        for c in f.chars {
+            println!("{}", c.value);
+            for y in 0..c.height {
+                for x in 0..c.width {
+                    if c.get(x, y) > 0. {
+                        print!("██");
+                    } else {
+                        print!("  ");
+                    }
+                }
+                print!("\n");
+            }
+        }
     }
 }
