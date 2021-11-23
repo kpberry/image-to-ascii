@@ -1,5 +1,6 @@
 use std::path::Path;
 
+#[derive(Clone)]
 pub struct Character {
     pub value: char,
     pub bitmap: Vec<f32>,
