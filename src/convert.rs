@@ -63,13 +63,13 @@ pub fn img_to_ascii(font: &Font, img: &DynamicImage, out_width: usize) -> String
     let resize_height = out_height * font.height;
     let mut img = img.resize_exact(resize_width as u32, resize_height as u32, FilterType::Triangle);
 
+    // sometimes makes the image look better
     // img.invert();
-    // TODO for some reason this gives weird output? should edge detect
+
+    // edge detection
     // img = img.filter3x3(&vec![-1., 0., 1., -1., 0., 1., -1., 0., 1.]);
 
-    let (width, height) = img.dimensions();
-    let width = width as usize;
-    let height = height as usize;
+    let (width, height) = img.dimensions() as (usize, usize);
     let img = img.to_luma8();
 
     let mut pixels: Vec<f32> = img.pixels().map(|&Luma([x])| (x as f32) / 255.0).collect();
