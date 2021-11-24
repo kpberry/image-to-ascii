@@ -71,14 +71,11 @@ pub fn img_to_ascii(font: &Font, img: &DynamicImage, metric: Metric, out_width: 
     // edge detection
     // img = img.filter3x3(&vec![-1., 0., 1., -1., 0., 1., -1., 0., 1.]);
 
-    let (width, height) = img.dimensions();
-    let width = width as usize;
-    let height = height as usize;
     let img = img.to_luma8();
 
-    let mut pixels: Vec<f32> = img.pixels().map(|&Luma([x])| (x as f32) / 255.0).collect();
-    let pixels_mean = (pixels.iter().fold(0.0, |acc, x| acc + x) as f64 / pixels.len() as f64) as f32;
+    let mut pixels: Vec<f32> = img.pixels().map(|&Luma([x])| x as f32).collect();
+    let pixels_mean = pixels.iter().sum::<f32>() / pixels.len() as f32;
     pixels = pixels.iter().map(|x| (x - pixels_mean) / pixels_mean).collect();
 
-    pixels_to_ascii(font, pixels, metric, width, height, out_width, out_height)
+    pixels_to_ascii(font, pixels, metric, resize_width, resize_height, out_width, out_height)
 }
