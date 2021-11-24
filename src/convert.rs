@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+use std::sync::{Arc, mpsc};
+use std::thread;
+use std::time::Duration;
 
 use image::{DynamicImage, GenericImageView, Luma};
 use image::imageops::FilterType;
@@ -12,7 +15,8 @@ pub fn pixel_chunk_to_ascii(font: &Font, chunk: &[f32], score_fn: Metric) -> cha
 
 pub fn pixels_to_ascii(font: &Font, pixels: Vec<f32>, metric: Metric,
                        width: usize, height: usize,
-                       out_width: usize, out_height: usize) -> String {
+                       out_width: usize, out_height: usize,
+                       n_threads: usize) -> String {
     let chunk_size = font.width * font.height;
     let vertical_chunks = height / font.height;
     let horizontal_chunks = width / font.width;
@@ -41,8 +45,34 @@ pub fn pixels_to_ascii(font: &Font, pixels: Vec<f32>, metric: Metric,
         chunks.extend(chunk_row);
     }
 
-    let chars: Vec<char> = chunks.iter()
-        .map(|chunk| pixel_chunk_to_ascii(font, chunk, metric)).collect();
+    let mut chars: Vec<char> = Vec::with_capacity(chunks.len());
+    if n_threads > 1 {
+        let (tx, rx) = mpsc::channel();
+        let font_arc = Arc::new(font.clone());
+
+        let chunk_len = chunks.len() / n_threads + 1;
+        for i in 0..n_threads {
+            let _tx = tx.clone();
+            let _font = font_arc.clone();
+            let _chunk = chunks[i * chunk_len..((i + 1) * chunk_len).min(chunks.len())].to_vec();
+            thread::spawn(move || {
+                let chars: Vec<char> = _chunk.iter()
+                    .map(|chunk| pixel_chunk_to_ascii(&_font, chunk, metric)).collect();
+                _tx.send((i, chars)).unwrap();
+            });
+        }
+        drop(tx);
+
+        let mut char_vecs: Vec<(usize, Vec<char>)> = rx.iter().collect();
+        char_vecs.sort();
+
+        for (_, char_vec) in char_vecs {
+            chars.extend(char_vec);
+        }
+    } else {
+         chars = chunks.iter()
+                    .map(|chunk| pixel_chunk_to_ascii(&font, chunk, metric)).collect();
+    }
 
     let mut char_rows: Vec<Vec<char>> = Vec::new();
     for j in 0..out_height {
@@ -57,13 +87,14 @@ pub fn pixels_to_ascii(font: &Font, pixels: Vec<f32>, metric: Metric,
     result
 }
 
-pub fn img_to_ascii(font: &Font, img: &DynamicImage, metric: Metric, out_width: usize) -> String {
+pub fn img_to_ascii(font: &Font, img: &DynamicImage, metric: Metric, out_width: usize,
+                    n_threads: usize) -> String {
     let (width, height) = img.dimensions();
 
     let resize_width = out_width * font.width;
     let out_height = (((resize_width * height as usize) as f64) / ((width as usize * font.height) as f64)).round() as usize;
     let resize_height = out_height * font.height;
-    let mut img = img.resize_exact(resize_width as u32, resize_height as u32, FilterType::Triangle);
+    let img = img.resize_exact(resize_width as u32, resize_height as u32, FilterType::Triangle);
 
     // sometimes makes the image look better
     // img.invert();
@@ -77,5 +108,5 @@ pub fn img_to_ascii(font: &Font, img: &DynamicImage, metric: Metric, out_width: 
     let pixels_mean = pixels.iter().sum::<f32>() / pixels.len() as f32;
     pixels = pixels.iter().map(|x| (x - pixels_mean) / pixels_mean).collect();
 
-    pixels_to_ascii(font, pixels, metric, resize_width, resize_height, out_width, out_height)
+    pixels_to_ascii(font, pixels, metric, resize_width, resize_height, out_width, out_height, n_threads)
 }

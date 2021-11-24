@@ -52,12 +52,12 @@ fn main() {
     if extension == "gif" {
         let gif = gif::read_gif(path);
         for img in gif {
-            let ascii = convert::img_to_ascii(&font, &img, metric,width);
+            let ascii = convert::img_to_ascii(&font, &img, metric,width, 8);
             println!("{}[2J{}", 27 as char, ascii);
         }
     } else {
         let img = image::open(path).unwrap();
-        let ascii = convert::img_to_ascii(&font, &img, metric,width);
+        let ascii = convert::img_to_ascii(&font, &img, metric,width, 8);
         println!("{}", ascii);
     }
 }

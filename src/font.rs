@@ -18,6 +18,7 @@ impl Character {
     }
 }
 
+#[derive(Clone)]
 pub struct Font {
     pub width: usize,
     pub height: usize,
