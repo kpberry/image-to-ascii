@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::path::Path;
 
 #[derive(Clone)]
@@ -23,10 +24,14 @@ pub struct Font {
     pub width: usize,
     pub height: usize,
     pub chars: Vec<Character>,
+    pub intensity_chars: Vec<Character>
 }
 
 impl Font {
-    pub fn new(chars: Vec<Character>) -> Font {
+    pub fn new(chars: Vec<Character>, alphabet: Vec<char>) -> Font {
+        let char_set: HashSet<char> = alphabet.iter().cloned().collect();
+        let chars: Vec<Character> = chars.iter().filter(|c| char_set.contains(&c.value)).cloned().collect();
+
         let min_height = chars.iter().map(|c| c.height).min().unwrap();
         let max_height = chars.iter().map(|c| c.height).max().unwrap();
         if max_height != min_height {
@@ -45,14 +50,33 @@ impl Font {
             )
         }
 
+        let (width, height) = (min_width, min_height);
+
+        let intensities: Vec<i32> = chars.iter().cloned().map(|c| c.bitmap.iter().sum::<f32>() as i32).collect();
+        let max_intensity = *intensities.iter().max().unwrap_or(&0);
+        let max_possible_intensity = (width * height) as i32;
+        let intensities: Vec<i32> = intensities.iter().map(|intensity| (intensity * max_possible_intensity / max_intensity) as i32).collect();
+
+        let mut char_intensities: Vec<(i32, Character)> = intensities.iter().cloned().zip(chars.iter().cloned()).collect();
+        char_intensities.sort_by_key(|(intensity, _)| *intensity);
+        let mut intensity_chars: Vec<Character> = Vec::with_capacity(max_possible_intensity as usize + 1);
+        let mut index = 0;
+        for i in 0..=max_possible_intensity {
+            while i > char_intensities[index].0 {
+                index += 1;
+            }
+            intensity_chars.push(char_intensities[index].1.clone());
+        }
+
         Font {
-            width: min_width,
-            height: min_height,
+            width,
+            height,
             chars,
+            intensity_chars
         }
     }
 
-    pub fn from_bdf(path: &Path) -> Font {
+    pub fn from_bdf(path: &Path, alphabet: Vec<char>) -> Font {
         let font: bdf::Font = bdf::open(path).unwrap();
         let mut chars: Vec<Character> = font.glyphs().iter().map(
             |(character, glyph)| {
@@ -70,7 +94,7 @@ impl Font {
         ).collect();
         chars.sort_by_key(|c| c.value as u8);
 
-        Font::new(chars)
+        Font::new(chars, alphabet)
     }
 
     pub fn print(&self) {
