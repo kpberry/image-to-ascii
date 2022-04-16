@@ -1,16 +1,17 @@
+use crate::font::Font;
+use crate::metrics::{
+    avg_color_score, dot_score, jaccard_score, movement_toward_clear, occlusion_score, Metric,
+};
+use clap::Parser;
 use std::fs;
 use std::path::Path;
-use crate::font::Font;
-use crate::metrics::{avg_color_score, dot_score, jaccard_score, Metric, movement_toward_clear, occlusion_score};
-use clap::Parser;
 
 use log::info;
 
-mod font;
-mod metrics;
-mod gif;
 mod convert;
-
+mod font;
+mod gif;
+mod metrics;
 
 #[derive(Parser)]
 struct Cli {
@@ -22,7 +23,7 @@ struct Cli {
     #[clap(short, long, default_value_t = 150)]
     width: usize,
     #[clap(short, long, default_value_t = String::from("dot"))]
-    metric: String
+    metric: String,
 }
 
 fn main() {
@@ -39,13 +40,16 @@ fn main() {
 
     let alphabet_path = Path::new(&args.alphabet_path);
     info!("alphabet path  {:?}", alphabet_path);
-    let alphabet: Vec<char> = fs::read(&alphabet_path).unwrap().iter().map(|&b| b as char).collect();
+    let alphabet: Vec<char> = fs::read(&alphabet_path)
+        .unwrap()
+        .iter()
+        .map(|&b| b as char)
+        .collect();
     info!("alphabet       [{}]", alphabet.iter().collect::<String>());
-    
+
     let font_path = Path::new(&args.font_path);
     info!("font path      {:?}", font_path);
     let font = Font::from_bdf(Path::new("fonts/kourier.bdf"), &alphabet);
-
 
     let metric = args.metric;
     info!("metric         {}", metric);
@@ -68,7 +72,7 @@ fn main() {
             "occlusion" => Some(occlusion_score),
             "color" => Some(avg_color_score),
             "clear" => Some(movement_toward_clear),
-            _ => None
+            _ => None,
         };
         // if the user specified a metric, don't fall back to the default
         let metric = metric_fn.expect(&format!("Unsupported metric {}", metric));

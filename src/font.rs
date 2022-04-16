@@ -6,12 +6,17 @@ pub struct Character {
     pub value: char,
     pub bitmap: Vec<f32>,
     pub width: usize,
-    pub height: usize
+    pub height: usize,
 }
 
 impl Character {
     pub fn new(value: char, bitmap: Vec<f32>, width: usize, height: usize) -> Character {
-        Character { value, bitmap, width, height }
+        Character {
+            value,
+            bitmap,
+            width,
+            height,
+        }
     }
 
     #[allow(dead_code)]
@@ -25,13 +30,17 @@ pub struct Font {
     pub width: usize,
     pub height: usize,
     pub chars: Vec<Character>,
-    pub intensity_chars: Vec<Character>
+    pub intensity_chars: Vec<Character>,
 }
 
 impl Font {
     pub fn new(chars: &[Character], alphabet: &[char]) -> Font {
         let char_set: HashSet<char> = alphabet.iter().cloned().collect();
-        let chars: Vec<Character> = chars.iter().filter(|c| char_set.contains(&c.value)).cloned().collect();
+        let chars: Vec<Character> = chars
+            .iter()
+            .filter(|c| char_set.contains(&c.value))
+            .cloned()
+            .collect();
 
         let min_height = chars.iter().map(|c| c.height).min().unwrap();
         let max_height = chars.iter().map(|c| c.height).max().unwrap();
@@ -53,14 +62,26 @@ impl Font {
 
         let (width, height) = (min_width, min_height);
 
-        let intensities: Vec<i32> = chars.iter().cloned().map(|c| c.bitmap.iter().sum::<f32>() as i32).collect();
+        let intensities: Vec<i32> = chars
+            .iter()
+            .cloned()
+            .map(|c| c.bitmap.iter().sum::<f32>() as i32)
+            .collect();
         let max_intensity = *intensities.iter().max().unwrap_or(&0);
         let max_possible_intensity = (width * height) as i32;
-        let intensities: Vec<i32> = intensities.iter().map(|intensity| (intensity * max_possible_intensity / max_intensity) as i32).collect();
+        let intensities: Vec<i32> = intensities
+            .iter()
+            .map(|intensity| (intensity * max_possible_intensity / max_intensity) as i32)
+            .collect();
 
-        let mut char_intensities: Vec<(i32, Character)> = intensities.iter().cloned().zip(chars.iter().cloned()).collect();
+        let mut char_intensities: Vec<(i32, Character)> = intensities
+            .iter()
+            .cloned()
+            .zip(chars.iter().cloned())
+            .collect();
         char_intensities.sort_by_key(|(intensity, _)| *intensity);
-        let mut intensity_chars: Vec<Character> = Vec::with_capacity(max_possible_intensity as usize + 1);
+        let mut intensity_chars: Vec<Character> =
+            Vec::with_capacity(max_possible_intensity as usize + 1);
         let mut index = 0;
         for i in 0..=max_possible_intensity {
             while i > char_intensities[index].0 {
@@ -73,14 +94,16 @@ impl Font {
             width,
             height,
             chars,
-            intensity_chars
+            intensity_chars,
         }
     }
 
     pub fn from_bdf(path: &Path, alphabet: &[char]) -> Font {
         let font: bdf::Font = bdf::open(path).unwrap();
-        let mut chars: Vec<Character> = font.glyphs().iter().map(
-            |(character, glyph)| {
+        let mut chars: Vec<Character> = font
+            .glyphs()
+            .iter()
+            .map(|(character, glyph)| {
                 let value = *character;
                 let width = glyph.width() as usize;
                 let height = glyph.height() as usize;
@@ -91,8 +114,8 @@ impl Font {
                     }
                 }
                 Character::new(value, bitmap, width, height)
-            }
-        ).collect();
+            })
+            .collect();
         chars.sort_by_key(|c| c.value as u8);
 
         Font::new(&chars, alphabet)
