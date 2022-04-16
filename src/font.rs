@@ -28,7 +28,7 @@ pub struct Font {
 }
 
 impl Font {
-    pub fn new(chars: Vec<Character>, alphabet: Vec<char>) -> Font {
+    pub fn new(chars: &[Character], alphabet: &[char]) -> Font {
         let char_set: HashSet<char> = alphabet.iter().cloned().collect();
         let chars: Vec<Character> = chars.iter().filter(|c| char_set.contains(&c.value)).cloned().collect();
 
@@ -76,7 +76,7 @@ impl Font {
         }
     }
 
-    pub fn from_bdf(path: &Path, alphabet: Vec<char>) -> Font {
+    pub fn from_bdf(path: &Path, alphabet: &[char]) -> Font {
         let font: bdf::Font = bdf::open(path).unwrap();
         let mut chars: Vec<Character> = font.glyphs().iter().map(
             |(character, glyph)| {
@@ -94,7 +94,7 @@ impl Font {
         ).collect();
         chars.sort_by_key(|c| c.value as u8);
 
-        Font::new(chars, alphabet)
+        Font::new(&chars, alphabet)
     }
 
     pub fn print(&self) {
