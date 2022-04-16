@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::sync::{Arc, mpsc};
 use std::thread;
-use std::time::Duration;
 
 use image::{DynamicImage, GenericImageView, Luma};
 use image::imageops::FilterType;
@@ -172,6 +171,6 @@ pub fn img_to_ascii_fast(font: &Font, img: &DynamicImage, out_width: usize) -> S
     let img = img.resize_exact(resize_width as u32, resize_height as u32, FilterType::Triangle);
     let img = img.to_luma8();
 
-    let mut pixels: Vec<f32> = img.pixels().map(|&Luma([x])| x as f32 / 255.).collect();
+    let pixels: Vec<f32> = img.pixels().map(|&Luma([x])| x as f32 / 255.).collect();
     pixels_to_ascii_fast(font, pixels, resize_width, resize_height, out_width, out_height)
 }

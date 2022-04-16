@@ -1,10 +1,10 @@
-use std::{env, fs};
-use std::path::{Path, PathBuf};
+use std::fs;
+use std::path::Path;
 use crate::font::Font;
 use crate::metrics::{avg_color_score, dot_score, jaccard_score, Metric, movement_toward_clear, occlusion_score};
 use clap::Parser;
-use image::DynamicImage;
-use log::{debug, info, warn};
+
+use log::info;
 
 mod font;
 mod metrics;

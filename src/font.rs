@@ -14,6 +14,7 @@ impl Character {
         Character { value, bitmap, width, height }
     }
 
+    #[allow(dead_code)]
     pub fn get(&self, x: usize, y: usize) -> f32 {
         self.bitmap[y * self.width + x]
     }
@@ -97,7 +98,7 @@ impl Font {
         Font::new(&chars, alphabet)
     }
 
-    pub fn print(&self) {
+    pub fn _print(&self) {
         for c in &self.chars {
             println!("{}", c.value);
             for y in 0..c.height {
