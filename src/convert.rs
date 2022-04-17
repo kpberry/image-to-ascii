@@ -1,18 +1,19 @@
 use std::collections::HashMap;
 use std::sync::{mpsc, Arc};
 use std::thread;
-use std::time::Duration;
+use rand::{Rng, thread_rng};
 
 use image::imageops::FilterType;
 use image::{DynamicImage, GenericImageView, Luma};
 
 use crate::{Font, Metric};
 
-pub fn pixel_chunk_to_ascii(font: &Font, chunk: &[f32], score_fn: Metric) -> char {
+pub fn pixel_chunk_to_ascii(font: &Font, chunk: &[f32], score_fn: Metric, noise_scale: f32) -> char {
+    let mut rng = thread_rng();
     let scores: HashMap<char, f32> = font
         .chars
         .iter()
-        .map(|c| (c.value, score_fn(&chunk, &c.bitmap)))
+        .map(|c| (c.value, score_fn(&chunk, &c.bitmap) + rng.gen::<f32>() * noise_scale))
         .collect();
     *scores
         .keys()
@@ -28,6 +29,7 @@ pub fn pixels_to_ascii(
     height: usize,
     out_width: usize,
     out_height: usize,
+    noise_scale: f32,
     n_threads: usize,
 ) -> String {
     let chunk_size = font.width * font.height;
@@ -72,7 +74,7 @@ pub fn pixels_to_ascii(
             thread::spawn(move || {
                 let chars: Vec<char> = _chunk
                     .iter()
-                    .map(|chunk| pixel_chunk_to_ascii(&_font, chunk, metric))
+                    .map(|chunk| pixel_chunk_to_ascii(&_font, chunk, metric, noise_scale))
                     .collect();
                 _tx.send((i, chars)).unwrap();
             });
@@ -89,7 +91,7 @@ pub fn pixels_to_ascii(
         // TODO make pixel_chunk_to_ascii a parameter so that "fast" can be passed in
         chars = chunks
             .iter()
-            .map(|chunk| pixel_chunk_to_ascii(&font, chunk, metric))
+            .map(|chunk| pixel_chunk_to_ascii(&font, chunk, metric, noise_scale))
             .collect();
     }
 
@@ -115,6 +117,7 @@ pub fn img_to_ascii(
     metric: Metric,
     out_width: usize,
     brightness_offset: f32,
+    noise_scale: f32,
     n_threads: usize,
 ) -> String {
     let (width, height) = img.dimensions();
@@ -148,6 +151,7 @@ pub fn img_to_ascii(
         resize_height,
         out_width,
         out_height,
+        noise_scale,
         n_threads,
     )
 }

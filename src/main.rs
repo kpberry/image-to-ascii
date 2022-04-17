@@ -27,7 +27,9 @@ struct Cli {
     #[clap(short, long, default_value_t = 1)]
     threads: usize,
     #[clap(short, long, default_value_t = 128.0)]
-    brightness_offset: f32
+    brightness_offset: f32,
+    #[clap(short, long, default_value_t = 0.0)]
+    noise_scale: f32
 }
 
 fn main() {
@@ -58,12 +60,6 @@ fn main() {
     let metric = args.metric;
     info!("metric         {}", metric);
 
-    let threads = args.threads;
-    info!("threads        {}", threads);
-
-    let brightness_offset = args.brightness_offset;
-    info!("brightness     {}", brightness_offset);
-
     if metric == "fast" {
         if extension == "gif" {
             let gif = gif::read_gif(image_path);
@@ -77,6 +73,16 @@ fn main() {
             println!("{}", ascii);
         }
     } else {
+        
+        let threads = args.threads;
+        info!("threads        {}", threads);
+
+        let brightness_offset = args.brightness_offset;
+        info!("brightness     {}", brightness_offset);
+
+        let noise_scale = args.noise_scale;
+        info!("noise scale    {}", noise_scale);
+
         let metric_fn: Option<Metric> = match &metric[..] {
             "jaccard" => Some(jaccard_score),
             "dot" => Some(dot_score),
@@ -91,12 +97,12 @@ fn main() {
         if extension == "gif" {
             let gif = gif::read_gif(image_path);
             for img in gif {
-                let ascii = convert::img_to_ascii(&font, &img, metric, width, brightness_offset, threads);
+                let ascii = convert::img_to_ascii(&font, &img, metric, width, brightness_offset, noise_scale, threads);
                 println!("{}[2J{}", 27 as char, ascii);
             }
         } else {
             let img = image::open(image_path).unwrap();
-            let ascii = convert::img_to_ascii(&font, &img, metric, width, brightness_offset, threads);
+            let ascii = convert::img_to_ascii(&font, &img, metric, width, brightness_offset, noise_scale, threads);
             println!("{}", ascii);
         }
     }

@@ -12,3 +12,4 @@ bdf = "*"
 clap = { version = "*", features = ["derive"] }
 log = "*"
 env_logger = "*"
+rand = "*"
