@@ -114,6 +114,7 @@ pub fn img_to_ascii(
     img: &DynamicImage,
     metric: Metric,
     out_width: usize,
+    brightness_offset: f32,
     n_threads: usize,
 ) -> String {
     let (width, height) = img.dimensions();
@@ -126,7 +127,7 @@ pub fn img_to_ascii(
     let img = img.resize_exact(
         resize_width as u32,
         resize_height as u32,
-        FilterType::Triangle,
+        FilterType::Nearest,
     );
 
     // sometimes makes the image look better
@@ -137,12 +138,7 @@ pub fn img_to_ascii(
 
     let img = img.to_luma8();
 
-    let mut pixels: Vec<f32> = img.pixels().map(|&Luma([x])| x as f32).collect();
-    let pixels_mean = pixels.iter().sum::<f32>() / pixels.len() as f32;
-    pixels = pixels
-        .iter()
-        .map(|x| (x - pixels_mean) / pixels_mean)
-        .collect();
+    let pixels: Vec<f32> = img.pixels().map(|&Luma([x])| (x as f32 - brightness_offset) / 255.).collect();
 
     pixels_to_ascii(
         font,
@@ -228,11 +224,11 @@ pub fn img_to_ascii_fast(font: &Font, img: &DynamicImage, out_width: usize) -> S
     let img = img.resize_exact(
         resize_width as u32,
         resize_height as u32,
-        FilterType::Triangle,
+        FilterType::Nearest,
     );
     let img = img.to_luma8();
 
-    let mut pixels: Vec<f32> = img.pixels().map(|&Luma([x])| x as f32 / 255.).collect();
+    let pixels: Vec<f32> = img.pixels().map(|&Luma([x])| x as f32 / 255.).collect();
     pixels_to_ascii_fast(
         font,
         pixels,

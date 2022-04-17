@@ -25,7 +25,9 @@ struct Cli {
     #[clap(short, long, default_value_t = String::from("dot"))]
     metric: String,
     #[clap(short, long, default_value_t = 1)]
-    threads: usize
+    threads: usize,
+    #[clap(short, long, default_value_t = 128.0)]
+    brightness_offset: f32
 }
 
 fn main() {
@@ -59,6 +61,9 @@ fn main() {
     let threads = args.threads;
     info!("threads        {}", threads);
 
+    let brightness_offset = args.brightness_offset;
+    info!("brightness     {}", brightness_offset);
+
     if metric == "fast" {
         if extension == "gif" {
             let gif = gif::read_gif(image_path);
@@ -86,12 +91,12 @@ fn main() {
         if extension == "gif" {
             let gif = gif::read_gif(image_path);
             for img in gif {
-                let ascii = convert::img_to_ascii(&font, &img, metric, width, threads);
+                let ascii = convert::img_to_ascii(&font, &img, metric, width, brightness_offset, threads);
                 println!("{}[2J{}", 27 as char, ascii);
             }
         } else {
             let img = image::open(image_path).unwrap();
-            let ascii = convert::img_to_ascii(&font, &img, metric, width, threads);
+            let ascii = convert::img_to_ascii(&font, &img, metric, width, brightness_offset, threads);
             println!("{}", ascii);
         }
     }
