@@ -7,7 +7,7 @@ use std::fs;
 use std::path::Path;
 use std::thread::sleep;
 use std::time::{Instant, Duration};
-use indicatif::ProgressIterator;
+use indicatif::{ProgressIterator, ProgressBar, ProgressStyle};
 
 use log::info;
 
@@ -74,11 +74,15 @@ fn main() {
     info!("fps            {}", fps);
 
     info!("rendering...");
+    let progress_template = "[{wide_bar}] Frames: {pos}/{len} Time: ({elapsed}/{duration})";
     let mut output: Vec<String> = Vec::new();
     if metric == "fast" {
         if extension == "gif" {
             let gif = gif::read_gif(image_path);
-            for img in gif.iter().progress() {
+            
+            let progress = ProgressBar::new(gif.iter().len() as u64);
+            progress.set_style(ProgressStyle::default_bar().template(progress_template));
+            for img in gif.iter().progress_with(progress) {
                 let ascii = convert::img_to_ascii_fast(&font, &img, width);
                 output.push(ascii);
             }
@@ -110,7 +114,9 @@ fn main() {
 
         if extension == "gif" {
             let gif = gif::read_gif(image_path);
-            for img in gif.iter().progress() {
+            let progress = ProgressBar::new(gif.iter().len() as u64);
+            progress.set_style(ProgressStyle::default_bar().template(progress_template));
+            for img in gif.iter().progress_with(progress) {
                 let ascii = convert::img_to_ascii(&font, &img, metric, width, brightness_offset, noise_scale, threads);
                 output.push(ascii);
             }
