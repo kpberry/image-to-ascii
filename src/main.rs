@@ -5,6 +5,9 @@ use crate::metrics::{
 use clap::Parser;
 use std::fs;
 use std::path::Path;
+use std::thread::sleep;
+use std::time::{Instant, Duration};
+use indicatif::ProgressIterator;
 
 use log::info;
 
@@ -29,7 +32,11 @@ struct Cli {
     #[clap(short, long, default_value_t = 128.0)]
     brightness_offset: f32,
     #[clap(short, long, default_value_t = 0.0)]
-    noise_scale: f32
+    noise_scale: f32,
+    #[clap(short, long)]
+    out_path: Option<String>,
+    #[clap(long, default_value_t = 60.0)]
+    fps: f64
 }
 
 fn main() {
@@ -60,20 +67,27 @@ fn main() {
     let metric = args.metric;
     info!("metric         {}", metric);
 
+    let out_path = args.out_path.as_ref().map(|name| Path::new(name));
+    info!("out path       {:?}", out_path);
+
+    let fps = args.fps;
+    info!("fps            {}", fps);
+
+    info!("rendering...");
+    let mut output: Vec<String> = Vec::new();
     if metric == "fast" {
         if extension == "gif" {
             let gif = gif::read_gif(image_path);
-            for img in gif {
+            for img in gif.iter().progress() {
                 let ascii = convert::img_to_ascii_fast(&font, &img, width);
-                println!("{}[2J{}", 27 as char, ascii);
+                output.push(ascii);
             }
         } else {
             let img = image::open(image_path).unwrap();
             let ascii = convert::img_to_ascii_fast(&font, &img, width);
-            println!("{}", ascii);
+            output.push(ascii);
         }
     } else {
-        
         let threads = args.threads;
         info!("threads        {}", threads);
 
@@ -96,14 +110,36 @@ fn main() {
 
         if extension == "gif" {
             let gif = gif::read_gif(image_path);
-            for img in gif {
+            for img in gif.iter().progress() {
                 let ascii = convert::img_to_ascii(&font, &img, metric, width, brightness_offset, noise_scale, threads);
-                println!("{}[2J{}", 27 as char, ascii);
+                output.push(ascii);
             }
         } else {
             let img = image::open(image_path).unwrap();
             let ascii = convert::img_to_ascii(&font, &img, metric, width, brightness_offset, noise_scale, threads);
-            println!("{}", ascii);
+            output.push(ascii);
+        }
+    }
+    info!("done!");
+
+    if let Some(path) = out_path {
+        let json = serde_json::to_string(&output).unwrap();
+        fs::write(path, json).unwrap();
+    } else {
+        if extension == "gif" {
+            loop {
+                for frame in &output {
+                    let t0 = Instant::now();
+                    println!("{}[2J{}", 27 as char, frame);
+                    let elapsed = t0.elapsed().as_secs_f64();
+                    let delay = (1.0 / fps) - elapsed;
+                    if delay > 0.0 {
+                        sleep(Duration::from_secs_f64(delay));
+                    }
+                }
+            }
+        } else {
+            println!("{}", output[0]);
         }
     }
 }

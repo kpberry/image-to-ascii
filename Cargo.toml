@@ -13,3 +13,5 @@ clap = { version = "*", features = ["derive"] }
 log = "*"
 env_logger = "*"
 rand = "*"
+serde_json = "*"
+indicatif = "*"
