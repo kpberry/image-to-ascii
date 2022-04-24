@@ -1,0 +1,43 @@
+<html>
+
+<head>
+    <script>
+        window.onload = function () {
+            let input = document.getElementById("file");
+            let display = document.getElementById("display");
+
+            let frames = [];
+            let currentFrame = -1;
+            
+            let render = function () {
+                if (frames.length == 0) {
+                    display.innerText = "{Image will show up here}";
+                } else {
+                    currentFrame += 1;
+                    if (currentFrame >= frames.length) {
+                        currentFrame = 0;
+                    }
+                    display.innerText = frames[currentFrame];
+                }
+            }
+            
+            setInterval(() => requestAnimationFrame(render), 1000.0 / 15);
+
+            let inputChange = function () {
+                input.files[0].text().then(text => {
+                    frames = JSON.parse(text);
+                });
+            }
+
+            input.addEventListener("change", inputChange);
+        }
+    </script>
+</head>
+
+<body style="background-color: #000000; color: #FFFFFF; font: bold 15px 'Courier New'">
+    <p>Select a rendered .json file. You can render a gif by providing the -o output.json flag to ascii_image.</p>
+    <input type="file" id="file" name="file">
+    <pre id="display"></pre>
+</body>
+
+</html>
