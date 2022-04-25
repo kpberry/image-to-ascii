@@ -6,7 +6,8 @@ use rand::{Rng, thread_rng};
 use image::imageops::FilterType;
 use image::{DynamicImage, GenericImageView, Luma};
 
-use crate::{Font, Metric};
+use crate::font::Font;
+use crate::metrics::Metric;
 
 pub fn pixel_chunk_to_ascii(font: &Font, chunk: &[f32], score_fn: Metric, noise_scale: f32) -> char {
     let mut rng = thread_rng();
