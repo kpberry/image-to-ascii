@@ -1,4 +1,6 @@
 use std::collections::HashSet;
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
 
 #[derive(Clone)]
@@ -98,8 +100,8 @@ impl Font {
         }
     }
 
-    pub fn from_bdf(path: &Path, alphabet: &[char]) -> Font {
-        let font: bdf::Font = bdf::open(path).unwrap();
+    pub fn from_bdf_stream<R: Read>(stream: R, alphabet: &[char]) -> Font {
+        let font: bdf::Font = bdf::read(stream).unwrap();
         let mut chars: Vec<Character> = font
             .glyphs()
             .iter()
@@ -119,6 +121,10 @@ impl Font {
         chars.sort_by_key(|c| c.value as u8);
 
         Font::new(&chars, alphabet)
+    }
+
+    pub fn from_bdf(path: &Path, alphabet: &[char]) -> Font {
+        Font::from_bdf_stream(File::open(path).unwrap(), alphabet)
     }
 
     pub fn _print(&self) {
