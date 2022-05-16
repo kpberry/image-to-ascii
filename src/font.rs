@@ -32,6 +32,8 @@ pub struct Font {
     pub width: usize,
     pub height: usize,
     pub chars: Vec<Character>,
+    pub intensities: Vec<f32>,
+    pub grads: Vec<(f32, f32)>,
     pub intensity_chars: Vec<Character>,
 }
 
@@ -64,14 +66,14 @@ impl Font {
 
         let (width, height) = (min_width, min_height);
 
-        let intensities: Vec<i32> = chars
+        let intensity_indexes: Vec<i32> = chars
             .iter()
             .cloned()
             .map(|c| c.bitmap.iter().sum::<f32>() as i32)
             .collect();
-        let max_intensity = *intensities.iter().max().unwrap_or(&0);
+        let max_intensity = *intensity_indexes.iter().max().unwrap_or(&0);
         let max_possible_intensity = (width * height) as i32;
-        let intensities: Vec<i32> = intensities
+        let intensities: Vec<i32> = intensity_indexes
             .iter()
             .map(|intensity| (intensity * max_possible_intensity / max_intensity) as i32)
             .collect();
@@ -92,10 +94,42 @@ impl Font {
             intensity_chars.push(char_intensities[index].1.clone());
         }
 
+        let intensities: Vec<f32> = chars
+            .iter()
+            .cloned()
+            .map(|c| c.bitmap.iter().sum::<f32>())
+            .collect();
+
+        let grads: Vec<(f32, f32)> = chars
+            .iter()
+            .cloned()
+            .map(|c| {
+                let mut x_grad = 0.0;
+                let mut y_grad = 0.0;
+                for i in 0..height {
+                    for j in 0..width - 1 {
+                        if c.bitmap[i * width + 1 + j] > c.bitmap[i * width + j] {
+                            x_grad += 1.;
+                        }
+                    }
+                }
+                for i in 0..height - 1 {
+                    for j in 0..width {
+                        if c.bitmap[(i + 1) * width + j] > c.bitmap[i * width + j] {
+                            y_grad += 1.;
+                        }
+                    }
+                }
+                (x_grad, y_grad)
+            })
+            .collect();
+
         Font {
             width,
             height,
             chars,
+            intensities,
+            grads,
             intensity_chars,
         }
     }

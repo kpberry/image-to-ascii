@@ -1,13 +1,13 @@
 use crate::font::Font;
 use crate::metrics::{
-    avg_color_score, dot_score, jaccard_score, movement_toward_clear, occlusion_score, Metric, grad_and_intensity_score,
+    avg_color_score, dot_score, jaccard_score, movement_toward_clear, occlusion_score, Metric,
 };
 use clap::Parser;
+use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 use std::fs;
 use std::path::Path;
 use std::thread::sleep;
-use std::time::{Instant, Duration};
-use indicatif::{ProgressIterator, ProgressBar, ProgressStyle};
+use std::time::{Duration, Instant};
 
 use log::info;
 
@@ -36,7 +36,7 @@ struct Cli {
     #[clap(short, long)]
     out_path: Option<String>,
     #[clap(long, default_value_t = 60.0)]
-    fps: f64
+    fps: f64,
 }
 
 fn main() {
@@ -79,7 +79,7 @@ fn main() {
     if metric == "fast" {
         if extension == "gif" {
             let gif = gif::read_gif(image_path);
-            
+
             let progress = ProgressBar::new(gif.iter().len() as u64);
             progress.set_style(ProgressStyle::default_bar().template(progress_template));
             for img in gif.iter().progress_with(progress) {
@@ -92,39 +92,78 @@ fn main() {
             output.push(ascii);
         }
     } else {
-        let threads = args.threads;
-        info!("threads        {}", threads);
-
         let brightness_offset = args.brightness_offset;
         info!("brightness     {}", brightness_offset);
 
         let noise_scale = args.noise_scale;
         info!("noise scale    {}", noise_scale);
 
-        let metric_fn: Option<Metric> = match &metric[..] {
-            "jaccard" => Some(jaccard_score),
-            "dot" => Some(dot_score),
-            "occlusion" => Some(occlusion_score),
-            "color" => Some(avg_color_score),
-            "clear" => Some(movement_toward_clear),
-            "grad" => Some(grad_and_intensity_score),
-            _ => None,
-        };
-        // if the user specified a metric, don't fall back to the default
-        let metric = metric_fn.expect(&format!("Unsupported metric {}", metric));
+        if metric == "grad" {
+            if extension == "gif" {
+                let gif = gif::read_gif(image_path);
 
-        if extension == "gif" {
-            let gif = gif::read_gif(image_path);
-            let progress = ProgressBar::new(gif.iter().len() as u64);
-            progress.set_style(ProgressStyle::default_bar().template(progress_template));
-            for img in gif.iter().progress_with(progress) {
-                let ascii = convert::img_to_ascii(&font, &img, metric, width, brightness_offset, noise_scale, threads);
+                let progress = ProgressBar::new(gif.iter().len() as u64);
+                progress.set_style(ProgressStyle::default_bar().template(progress_template));
+                for img in gif.iter().progress_with(progress) {
+                    let ascii = convert::img_to_ascii_grad(
+                        &font,
+                        &img,
+                        width,
+                        brightness_offset,
+                        noise_scale,
+                    );
+                    output.push(ascii);
+                }
+            } else {
+                let img = image::open(image_path).unwrap();
+                let ascii =
+                    convert::img_to_ascii_grad(&font, &img, width, brightness_offset, noise_scale);
                 output.push(ascii);
             }
         } else {
-            let img = image::open(image_path).unwrap();
-            let ascii = convert::img_to_ascii(&font, &img, metric, width, brightness_offset, noise_scale, threads);
-            output.push(ascii);
+            let threads = args.threads;
+            info!("threads        {}", threads);
+
+            let metric_fn: Option<Metric> = match &metric[..] {
+                "jaccard" => Some(jaccard_score),
+                "dot" => Some(dot_score),
+                "occlusion" => Some(occlusion_score),
+                "color" => Some(avg_color_score),
+                "clear" => Some(movement_toward_clear),
+                _ => None,
+            };
+            // if the user specified a metric, don't fall back to the default
+            let metric = metric_fn.expect(&format!("Unsupported metric {}", metric));
+
+            if extension == "gif" {
+                let gif = gif::read_gif(image_path);
+                let progress = ProgressBar::new(gif.iter().len() as u64);
+                progress.set_style(ProgressStyle::default_bar().template(progress_template));
+                for img in gif.iter().progress_with(progress) {
+                    let ascii = convert::img_to_ascii(
+                        &font,
+                        &img,
+                        metric,
+                        width,
+                        brightness_offset,
+                        noise_scale,
+                        threads,
+                    );
+                    output.push(ascii);
+                }
+            } else {
+                let img = image::open(image_path).unwrap();
+                let ascii = convert::img_to_ascii(
+                    &font,
+                    &img,
+                    metric,
+                    width,
+                    brightness_offset,
+                    noise_scale,
+                    threads,
+                );
+                output.push(ascii);
+            }
         }
     }
     info!("done!");
