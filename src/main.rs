@@ -1,6 +1,6 @@
 use crate::font::Font;
 use crate::metrics::{
-    avg_color_score, dot_score, jaccard_score, movement_toward_clear, occlusion_score, Metric,
+    avg_color_score, dot_score, jaccard_score, movement_toward_clear, occlusion_score, Metric, grad_and_intensity_score,
 };
 use clap::Parser;
 use std::fs;
@@ -40,6 +40,48 @@ struct Cli {
 }
 
 fn main() {
+    let xs = vec![
+        1., 1., 1., 1., 1., 0., 0.,
+        0., 0., 0., 0., 1., 1., 0.,
+        0., 0., 0., 0., 0., 1., 1.,
+        0., 0., 0., 0., 0., 0., 1.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+    ];
+
+    let ys = vec![
+        1., 1., 1., 1., 1., 0., 0.,
+        1., 0., 0., 0., 1., 1., 0.,
+        0., 0., 0., 0., 0., 1., 1.,
+        0., 0., 0., 0., 0., 0., 1.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+        0., 0., 0., 0., 0., 0., 0.,
+    ];
+
+    
+    // println!("{}", gradient_score(&xs, &ys));
+    // panic!();
+
+
     env_logger::init();
 
     let args = Cli::parse();
@@ -107,6 +149,7 @@ fn main() {
             "occlusion" => Some(occlusion_score),
             "color" => Some(avg_color_score),
             "clear" => Some(movement_toward_clear),
+            "grad" => Some(grad_and_intensity_score),
             _ => None,
         };
         // if the user specified a metric, don't fall back to the default
