@@ -9,7 +9,40 @@ use image::{DynamicImage, GenericImageView, Luma};
 use crate::font::Font;
 use crate::metrics::Metric;
 
-pub fn pixel_chunk_to_ascii(font: &Font, chunk: &[f32], score_fn: Metric, noise_scale: f32) -> char {
+fn pixels_to_chunks(pixels: &[f32],width: usize, height: usize, chunk_width: usize, chunk_height: usize) -> Vec<Vec<f32>> {
+    let chunk_size = chunk_width * chunk_height;
+    let vertical_chunks = height / chunk_height;
+    let horizontal_chunks = width / chunk_width;
+    
+    // not the simplest way of doing this, but should give good cache performance and avoids
+    // multiplications/divisions
+    let mut chunks: Vec<Vec<f32>> = Vec::with_capacity(vertical_chunks * horizontal_chunks);
+    let mut y_offset = 0;
+    let mut x_offset = 0;
+    for _ in 0..vertical_chunks {
+        let mut chunk_row: Vec<Vec<f32>> = (0..horizontal_chunks)
+            .map(|_| Vec::with_capacity(chunk_size))
+            .collect();
+
+        for _ in 0..chunk_height {
+            for x in 0..horizontal_chunks {
+                let start = y_offset + x_offset;
+                let end = start + chunk_width;
+                let chunk_pixel_row = &pixels[start..end];
+                chunk_row[x].extend(chunk_pixel_row);
+                x_offset += chunk_width;
+            }
+            y_offset += width;
+            x_offset = 0;
+        }
+
+        chunks.extend(chunk_row);
+    }
+
+    chunks
+}
+
+pub fn chunk_to_ascii(font: &Font, chunk: &[f32], score_fn: Metric, noise_scale: f32) -> char {
     let mut rng = thread_rng();
     let scores: HashMap<char, f32> = font
         .chars
@@ -33,34 +66,7 @@ pub fn pixels_to_ascii(
     noise_scale: f32,
     n_threads: usize,
 ) -> String {
-    let chunk_size = font.width * font.height;
-    let vertical_chunks = height / font.height;
-    let horizontal_chunks = width / font.width;
-
-    // not the simplest way of doing this, but should give good cache performance and avoids
-    // multiplications/divisions
-    let mut chunks: Vec<Vec<f32>> = Vec::with_capacity(vertical_chunks * horizontal_chunks);
-    let mut y_offset = 0;
-    let mut x_offset = 0;
-    for _ in 0..vertical_chunks {
-        let mut chunk_row: Vec<Vec<f32>> = (0..horizontal_chunks)
-            .map(|_| Vec::with_capacity(chunk_size))
-            .collect();
-
-        for _ in 0..font.height {
-            for x in 0..horizontal_chunks {
-                let start = y_offset + x_offset;
-                let end = start + font.width;
-                let chunk_pixel_row = &pixels[start..end];
-                chunk_row[x].extend(chunk_pixel_row);
-                x_offset += font.width;
-            }
-            y_offset += width;
-            x_offset = 0;
-        }
-
-        chunks.extend(chunk_row);
-    }
+    let chunks = pixels_to_chunks(&pixels, width, height, font.width, font.height);
 
     let mut chars: Vec<char> = Vec::with_capacity(chunks.len());
     if n_threads > 1 {
@@ -75,7 +81,7 @@ pub fn pixels_to_ascii(
             thread::spawn(move || {
                 let chars: Vec<char> = _chunk
                     .iter()
-                    .map(|chunk| pixel_chunk_to_ascii(&_font, chunk, metric, noise_scale))
+                    .map(|chunk| chunk_to_ascii(&_font, chunk, metric, noise_scale))
                     .collect();
                 _tx.send((i, chars)).unwrap();
             });
@@ -92,7 +98,7 @@ pub fn pixels_to_ascii(
         // TODO make pixel_chunk_to_ascii a parameter so that "fast" can be passed in
         chars = chunks
             .iter()
-            .map(|chunk| pixel_chunk_to_ascii(&font, chunk, metric, noise_scale))
+            .map(|chunk| chunk_to_ascii(&font, chunk, metric, noise_scale))
             .collect();
     }
 
@@ -165,34 +171,7 @@ pub fn pixels_to_ascii_fast(
     out_width: usize,
     out_height: usize,
 ) -> String {
-    let chunk_size = font.width * font.height;
-    let vertical_chunks = height / font.height;
-    let horizontal_chunks = width / font.width;
-
-    // not the simplest way of doing this, but should give good cache performance and avoids
-    // multiplications/divisions
-    let mut chunks: Vec<Vec<f32>> = Vec::with_capacity(vertical_chunks * horizontal_chunks);
-    let mut y_offset = 0;
-    let mut x_offset = 0;
-    for _ in 0..vertical_chunks {
-        let mut chunk_row: Vec<Vec<f32>> = (0..horizontal_chunks)
-            .map(|_| Vec::with_capacity(chunk_size))
-            .collect();
-
-        for _ in 0..font.height {
-            for x in 0..horizontal_chunks {
-                let start = y_offset + x_offset;
-                let end = start + font.width;
-                let chunk_pixel_row = &pixels[start..end];
-                chunk_row[x].extend(chunk_pixel_row);
-                x_offset += font.width;
-            }
-            y_offset += width;
-            x_offset = 0;
-        }
-
-        chunks.extend(chunk_row);
-    }
+    let chunks = pixels_to_chunks(&pixels, width, height, font.width, font.height);
 
     let chars: Vec<char> = chunks
         .iter()
@@ -253,34 +232,7 @@ pub fn pixels_to_ascii_grad(
     out_height: usize,
     noise_scale: f32,
 ) -> String {
-    let chunk_size = font.width * font.height;
-    let vertical_chunks = height / font.height;
-    let horizontal_chunks = width / font.width;
-
-    // not the simplest way of doing this, but should give good cache performance and avoids
-    // multiplications/divisions
-    let mut chunks: Vec<Vec<f32>> = Vec::with_capacity(vertical_chunks * horizontal_chunks);
-    let mut y_offset = 0;
-    let mut x_offset = 0;
-    for _ in 0..vertical_chunks {
-        let mut chunk_row: Vec<Vec<f32>> = (0..horizontal_chunks)
-            .map(|_| Vec::with_capacity(chunk_size))
-            .collect();
-
-        for _ in 0..font.height {
-            for x in 0..horizontal_chunks {
-                let start = y_offset + x_offset;
-                let end = start + font.width;
-                let chunk_pixel_row = &pixels[start..end];
-                chunk_row[x].extend(chunk_pixel_row);
-                x_offset += font.width;
-            }
-            y_offset += width;
-            x_offset = 0;
-        }
-
-        chunks.extend(chunk_row);
-    }
+    let chunks = pixels_to_chunks(&pixels, width, height, font.width, font.height);
 
     let mut rng = thread_rng();
     let max_gradient = (font.width * font.height * 4) as f32;  // gradient should never be bigger than this
