@@ -25,7 +25,7 @@ struct Cli {
     alphabet_path: String,
     #[clap(short, long, default_value_t = 150)]
     width: usize,
-    #[clap(short, long, default_value_t = String::from("dot"))]
+    #[clap(short, long, default_value_t = String::from("grad"))]
     metric: String,
     #[clap(short, long, default_value_t = 1)]
     threads: usize,
