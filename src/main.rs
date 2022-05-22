@@ -1,8 +1,8 @@
+use crate::convert::get_converter;
 use crate::font::Font;
-use crate::metrics::{
-    avg_color_score, dot_score, jaccard_score, movement_toward_clear, occlusion_score, Metric,
-};
+
 use clap::Parser;
+use image::DynamicImage;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 use std::fs;
 use std::path::Path;
@@ -73,99 +73,45 @@ fn main() {
     let fps = args.fps;
     info!("fps            {}", fps);
 
+    let brightness_offset = args.brightness_offset;
+    info!("brightness     {}", brightness_offset);
+
+    let noise_scale = args.noise_scale;
+    info!("noise scale    {}", noise_scale);
+
+    let threads = args.threads;
+    info!("threads        {}", threads);
+
+    let convert = get_converter(&metric);
+    // info!("converter      {:?}", convert);
+
     info!("rendering...");
-    let progress_template = "[{wide_bar}] Frames: {pos}/{len} Time: ({elapsed}/{duration})";
     let mut output: Vec<String> = Vec::new();
-    if metric == "fast" {
-        if extension == "gif" {
-            let gif = gif::read_gif(image_path);
 
-            let progress = ProgressBar::new(gif.iter().len() as u64);
-            progress.set_style(ProgressStyle::default_bar().template(progress_template));
-            for img in gif.iter().progress_with(progress) {
-                let ascii = convert::img_to_ascii_fast(&font, &img, width);
-                output.push(ascii);
-            }
-        } else {
-            let img = image::open(image_path).unwrap();
-            let ascii = convert::img_to_ascii_fast(&font, &img, width);
-            output.push(ascii);
-        }
+    let frames: Vec<DynamicImage> = if extension == "gif" {
+        let gif = gif::read_gif(image_path);
+        gif.iter().cloned().collect()
     } else {
-        let brightness_offset = args.brightness_offset;
-        info!("brightness     {}", brightness_offset);
+        let img = image::open(image_path).unwrap();
+        vec![img]
+    };
 
-        let noise_scale = args.noise_scale;
-        info!("noise scale    {}", noise_scale);
-
-        if metric == "grad" {
-            if extension == "gif" {
-                let gif = gif::read_gif(image_path);
-
-                let progress = ProgressBar::new(gif.iter().len() as u64);
-                progress.set_style(ProgressStyle::default_bar().template(progress_template));
-                for img in gif.iter().progress_with(progress) {
-                    let ascii = convert::img_to_ascii_grad(
-                        &font,
-                        &img,
-                        width,
-                        brightness_offset,
-                        noise_scale,
-                    );
-                    output.push(ascii);
-                }
-            } else {
-                let img = image::open(image_path).unwrap();
-                let ascii =
-                    convert::img_to_ascii_grad(&font, &img, width, brightness_offset, noise_scale);
-                output.push(ascii);
-            }
-        } else {
-            let threads = args.threads;
-            info!("threads        {}", threads);
-
-            let metric_fn: Option<Metric> = match &metric[..] {
-                "jaccard" => Some(jaccard_score),
-                "dot" => Some(dot_score),
-                "occlusion" => Some(occlusion_score),
-                "color" => Some(avg_color_score),
-                "clear" => Some(movement_toward_clear),
-                _ => None,
-            };
-            // if the user specified a metric, don't fall back to the default
-            let metric = metric_fn.expect(&format!("Unsupported metric {}", metric));
-
-            if extension == "gif" {
-                let gif = gif::read_gif(image_path);
-                let progress = ProgressBar::new(gif.iter().len() as u64);
-                progress.set_style(ProgressStyle::default_bar().template(progress_template));
-                for img in gif.iter().progress_with(progress) {
-                    let ascii = convert::img_to_ascii(
-                        &font,
-                        &img,
-                        metric,
-                        width,
-                        brightness_offset,
-                        noise_scale,
-                        threads,
-                    );
-                    output.push(ascii);
-                }
-            } else {
-                let img = image::open(image_path).unwrap();
-                let ascii = convert::img_to_ascii(
-                    &font,
-                    &img,
-                    metric,
-                    width,
-                    brightness_offset,
-                    noise_scale,
-                    threads,
-                );
-                output.push(ascii);
-            }
-        }
+    let progress_template = "[{wide_bar}] Frames: {pos}/{len} Time: ({elapsed}/{duration})";
+    let progress = ProgressBar::new(frames.len() as u64);
+    progress.set_style(ProgressStyle::default_bar().template(progress_template));
+    for img in frames.iter().progress_with(progress) {
+        let ascii = convert::img_to_ascii(
+            &font,
+            &img,
+            convert,
+            width,
+            brightness_offset,
+            noise_scale,
+            threads,
+        );
+        output.push(ascii);
     }
+
     info!("done!");
 
     if let Some(path) = out_path {
