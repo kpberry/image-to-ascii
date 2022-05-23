@@ -1,5 +1,6 @@
-use crate::convert::get_converter;
+use crate::convert::{ascii_to_bitmap, get_converter};
 use crate::font::Font;
+use crate::gif::write_gif;
 
 use clap::Parser;
 use image::DynamicImage;
@@ -35,7 +36,7 @@ struct Cli {
     noise_scale: f32,
     #[clap(short, long)]
     out_path: Option<String>,
-    #[clap(long, default_value_t = 60.0)]
+    #[clap(long, default_value_t = 30.0)]
     fps: f64,
 }
 
@@ -49,7 +50,7 @@ fn main() {
 
     let image_path = Path::new(&args.image_path);
     info!("image path     {:?}", image_path);
-    let extension = image_path.extension().unwrap();
+    let in_extension = image_path.extension().unwrap();
 
     let alphabet_path = Path::new(&args.alphabet_path);
     info!("alphabet path  {:?}", alphabet_path);
@@ -85,10 +86,10 @@ fn main() {
     let convert = get_converter(&metric);
     // info!("converter      {:?}", convert);
 
-    info!("rendering...");
+    info!("converting frames to ascii...");
     let mut output: Vec<String> = Vec::new();
 
-    let frames: Vec<DynamicImage> = if extension == "gif" {
+    let frames: Vec<DynamicImage> = if in_extension == "gif" {
         let gif = gif::read_gif(image_path);
         gif.iter().cloned().collect()
     } else {
@@ -112,13 +113,26 @@ fn main() {
         output.push(ascii);
     }
 
-    info!("done!");
-
     if let Some(path) = out_path {
-        let json = serde_json::to_string(&output).unwrap();
-        fs::write(path, json).unwrap();
+        let out_extension = path.extension().unwrap();
+
+        if out_extension == "json" {
+            let json = serde_json::to_string(&output).unwrap();
+            fs::write(path, json).unwrap();
+        } else if out_extension == "gif" {
+            info!("converting ascii strings to bitmaps...");
+            let progress_template = "[{wide_bar}] Frames: {pos}/{len} Time: ({elapsed}/{duration})";
+            let progress = ProgressBar::new(frames.len() as u64);
+            progress.set_style(ProgressStyle::default_bar().template(progress_template));
+            let frames: Vec<DynamicImage> = output
+                .iter()
+                .progress_with(progress)
+                .map(|frame| ascii_to_bitmap(&font, &frame))
+                .collect();
+            write_gif(path, &frames, fps);
+        }
     } else {
-        if extension == "gif" {
+        if in_extension == "gif" {
             loop {
                 for frame in &output {
                     let t0 = Instant::now();

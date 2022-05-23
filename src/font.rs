@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -34,6 +34,7 @@ pub struct Font {
     pub chars: Vec<Character>,
     pub intensities: Vec<f32>,
     pub grads: Vec<(f32, f32)>,
+    pub char_map: HashMap<char, Character>,
     pub intensity_chars: Vec<Character>,
 }
 
@@ -124,12 +125,15 @@ impl Font {
             })
             .collect();
 
+        let char_map = chars.iter().map(|c| (c.value, c.clone())).collect();
+
         Font {
             width,
             height,
             chars,
             intensities,
             grads,
+            char_map,
             intensity_chars,
         }
     }

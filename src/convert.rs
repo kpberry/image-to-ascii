@@ -5,7 +5,7 @@ use std::sync::{mpsc, Arc};
 use std::thread;
 
 use image::imageops::FilterType;
-use image::{DynamicImage, GenericImageView, Luma};
+use image::{DynamicImage, GenericImageView, Luma, GrayImage};
 
 use crate::font::Font;
 use crate::metrics::{
@@ -244,4 +244,31 @@ pub fn img_to_ascii(
     let result = strings.join("\n");
 
     result
+}
+
+pub fn ascii_to_bitmap(
+    font: &Font,
+    ascii: &str,
+) -> DynamicImage {
+    let lines: Vec<&str> = ascii.lines().collect();
+    let width = (lines[0].len() * font.width) as u32;
+    let height = (lines.len() * font.height) as u32;
+    let mut image = GrayImage::new(width, height);
+
+    for (j, line) in lines.iter().enumerate() {
+        for (i, chr) in line.chars().enumerate() {
+            let x_offset = i * font.width;
+            let y_offset = j * font.height;
+            let bitmap = &font.char_map.get(&chr).unwrap().bitmap;
+            for y in 0..font.height {
+                for x in 0..font.width {
+                    let pixel = Luma([(255. * bitmap[y * font.width + x]) as u8]);
+                    image.put_pixel((x + x_offset) as u32, (y + y_offset) as u32, pixel);
+                }
+            }
+
+        }
+    }
+
+    DynamicImage::ImageLuma8(image)
 }
