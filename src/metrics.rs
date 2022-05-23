@@ -17,7 +17,7 @@ pub fn occlusion_score(xs: &[f32], ys: &[f32]) -> f32 {
 }
 
 pub fn avg_color_score(xs: &[f32], ys: &[f32]) -> f32 {
-    -xs.iter().zip(ys).map(|(x, y)| (x + y).abs()).sum::<f32>()
+    xs.iter().zip(ys).map(|(x, y)| (x + y).abs()).sum::<f32>()
 }
 
 pub fn movement_toward_clear(xs: &[f32], ys: &[f32]) -> f32 {
