@@ -65,7 +65,7 @@ fn main() {
 
     let font_path = Path::new(&args.font_path);
     info!("font path      {:?}", font_path);
-    let font = Font::from_bdf(Path::new("fonts/kourier.bdf"), &alphabet);
+    let font = Font::from_bdf(font_path, &alphabet);
 
     let metric = args.metric;
     info!("metric         {}", metric);
