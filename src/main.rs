@@ -1,10 +1,11 @@
 use crate::convert::{ascii_to_bitmap, get_converter};
 use crate::font::Font;
 use crate::gif::write_gif;
+use crate::progress::default_progress_bar;
 
 use clap::Parser;
 use image::DynamicImage;
-use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
+use indicatif::ProgressIterator;
 use std::fs;
 use std::path::Path;
 use std::thread::sleep;
@@ -16,6 +17,7 @@ mod convert;
 mod font;
 mod gif;
 mod metrics;
+mod progress;
 
 #[derive(Parser)]
 struct Cli {
@@ -97,9 +99,7 @@ fn main() {
         vec![img]
     };
 
-    let progress_template = "[{wide_bar}] Frames: {pos}/{len} Time: ({elapsed}/{duration})";
-    let progress = ProgressBar::new(frames.len() as u64);
-    progress.set_style(ProgressStyle::default_bar().template(progress_template));
+    let progress = default_progress_bar("Frames", frames.len());
     for img in frames.iter().progress_with(progress) {
         let ascii = convert::img_to_ascii(
             &font,
@@ -121,9 +121,7 @@ fn main() {
             fs::write(path, json).unwrap();
         } else if out_extension == "gif" {
             info!("converting ascii strings to bitmaps...");
-            let progress_template = "[{wide_bar}] Frames: {pos}/{len} Time: ({elapsed}/{duration})";
-            let progress = ProgressBar::new(frames.len() as u64);
-            progress.set_style(ProgressStyle::default_bar().template(progress_template));
+            let progress = default_progress_bar("Frames", output.len());
             let frames: Vec<DynamicImage> = output
                 .iter()
                 .progress_with(progress)
