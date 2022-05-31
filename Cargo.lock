@@ -24,20 +24,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ascii_image"
-version = "0.1.0"
-dependencies = [
- "bdf",
- "clap",
- "env_logger",
- "image",
- "indicatif",
- "log",
- "rand",
- "serde_json",
-]
-
-[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -388,6 +374,20 @@ dependencies = [
  "png",
  "scoped_threadpool",
  "tiff",
+]
+
+[[package]]
+name = "image-to-ascii"
+version = "0.1.0"
+dependencies = [
+ "bdf",
+ "clap",
+ "env_logger",
+ "image",
+ "indicatif",
+ "log",
+ "rand",
+ "serde_json",
 ]
 
 [[package]]
