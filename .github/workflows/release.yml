@@ -19,7 +19,7 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
     - name: Upload ${{ matrix.os }} executable
-      if: runner.os == 'Linux' || runner.os == 'macOS
+      if: runner.os == 'Linux' || runner.os == 'macOS'
       uses: actions/upload-artifact@v3.1.0
       with: 
         name: ${{ matrix.os }} executable
