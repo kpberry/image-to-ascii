@@ -6,6 +6,7 @@ use crate::progress::default_progress_bar;
 use clap::Parser;
 use image::DynamicImage;
 use indicatif::ProgressIterator;
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use std::thread::sleep;
@@ -22,10 +23,10 @@ mod progress;
 #[derive(Parser)]
 struct Cli {
     image_path: String,
-    #[clap(short, long, default_value_t = String::from("fonts/courier.bdf"))]
-    font_path: String,
-    #[clap(short, long, default_value_t = String::from("alphabets/alphabet.txt"))]
-    alphabet_path: String,
+    #[clap(short, long, default_value_t = String::from("courier"))]
+    font: String,
+    #[clap(short, long, default_value_t = String::from("alphabet"))]
+    alphabet: String,
     #[clap(short, long, default_value_t = 150)]
     width: usize,
     #[clap(short, long, default_value_t = String::from("grad"))]
@@ -42,6 +43,20 @@ struct Cli {
     fps: f64,
 }
 
+const ALPHABETS: [(&str, &str); 6] = [
+    ("alphabet", include_str!("../alphabets/alphabet.txt")),
+    ("letters", include_str!("../alphabets/letters.txt")),
+    ("lowercase", include_str!("../alphabets/lowercase.txt")),
+    ("minimal", include_str!("../alphabets/minimal.txt")),
+    ("symbols", include_str!("../alphabets/symbols.txt")),
+    ("uppercase", include_str!("../alphabets/uppercase.txt")),
+];
+
+const FONTS: [(&str, &str); 2] = [
+    ("courier", include_str!("../fonts/courier.bdf")),
+    ("bitocra-13", include_str!("../fonts/bitocra-13.bdf")),
+];
+
 fn main() {
     env_logger::init();
 
@@ -54,18 +69,37 @@ fn main() {
     info!("image path     {:?}", image_path);
     let in_extension = image_path.extension().unwrap();
 
-    let alphabet_path = Path::new(&args.alphabet_path);
-    info!("alphabet path  {:?}", alphabet_path);
-    let alphabet: Vec<char> = fs::read(&alphabet_path)
-        .unwrap()
-        .iter()
-        .map(|&b| b as char)
-        .collect();
+    let alphabet_str = &args.alphabet;
+    let alphabet_map: HashMap<&str, &str> = ALPHABETS.iter().cloned().collect();
+    let alphabet: Vec<char> = if alphabet_map.contains_key(&alphabet_str.as_ref()) {
+        info!("alphabet name  {:?}", alphabet_str);
+        alphabet_map
+            .get(&alphabet_str.as_ref())
+            .unwrap()
+            .chars()
+            .collect()
+    } else {
+        let alphabet_path = Path::new(alphabet_str);
+        info!("alphabet path  {:?}", alphabet_path);
+        fs::read(&alphabet_path)
+            .unwrap()
+            .iter()
+            .map(|&b| b as char)
+            .collect()
+    };
     info!("alphabet       [{}]", alphabet.iter().collect::<String>());
 
-    let font_path = Path::new(&args.font_path);
-    info!("font path      {:?}", font_path);
-    let font = Font::from_bdf(font_path, &alphabet);
+    let font_str = &args.font;
+    let font_map: HashMap<&str, &str> = FONTS.iter().cloned().collect();
+    let font: Font = if font_map.contains_key(&font_str.as_ref()) {
+        info!("font name      {:?}", font_str);
+        let font_data = font_map.get(&font_str.as_ref()).unwrap();
+        Font::from_bdf_stream(font_data.as_bytes(), &alphabet)
+    } else {
+        let font_path = Path::new(font_str);
+        info!("font path      {:?}", font_path);
+        Font::from_bdf(font_path, &alphabet)
+    };
 
     let metric = args.metric;
     info!("metric         {}", metric);

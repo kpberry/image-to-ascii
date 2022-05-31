@@ -19,8 +19,9 @@ Here are some examples of converting between various input and output formats:
 ```
 image-to-ascii input_image.jpg
 image-to-ascii input_image.gif -o output_image.gif
-image-to-ascii input_image.jpeg -o output_image.json
-image-to-ascii input_image.gif -o output_image.gif --metric dot --font-path bitocra-13.bdf --width 200
+image-to-ascii input_image.jpeg -o output_image.json --width 200
+image-to-ascii input_image.gif -o output_image.gif --metric dot --font bitocra-13 --alphabet minimal
+image-to-ascii input_image.gif -o output_image.json --metric grad --font fonts/courier.bdf --alphabet alphabets/letters.txt
 ```
 
 All image formats readable by [image](https://docs.rs/image/latest/image/) should be supported as inputs and are detected automatically from the input file name.
@@ -36,14 +37,22 @@ If you would like to use a font other than the default, you can find a large col
 ### <IMAGE_PATH>
 Path to the input image file. If the input file is an image, the output will be a static image. If the input is a .gif, then the output will be animated.
 
-### -a, --alphabet-path <ALPHABET_PATH>            [default: alphabets/alphabet.txt]
-Path to the file containing the alphabet to use. The provided font must have a glyph for each character in the provided alphabet.
+### -a, --alphabet <ALPHABET>            [default: alphabet]
+Name or path specifying an alphabet to use. The provided font must have a glyph for each character in the provided alphabet. Valid alphabet names are:
+- [alphabet](alphabets/alphabet.txt)
+- [letters](alphabets/letters.txt)
+- [lowercase](alphabets/lowercase.txt)
+- [uppercase](alphabets/uppercase.txt)
+- [minimal](alphabets/minimal.txt)
+- [symbols](alphabets/symbols.txt)
 
 ### -b, --brightness-offset <BRIGHTNESS_OFFSET>    [default: 128, min: 0, max: 255]
 Amount subtracted from each grayscale pixel of the image before computing character similarities. Darker images tend to look better with low brightness offsets, while lighter images tend to look better with high ones.
 
-### -f, --font-path <FONT_PATH>                    [default: fonts/kourier.bdf]
-Path to the file containing the font to use. The provided font must be monospace in .bdf format and have a glyph for each character in the provided alphabet.
+### -f, --font \<FONT>                    [default: courier]
+Name or path specifying a font to use. The provided font must be monospace in .bdf format and have a glyph for each character in the provided alphabet. Valid font names are:
+- [courier](fonts/courier.bdf)
+- [bitocra-13](fonts/bitocra-13.bdf)
 
 ### --fps <FPS>                                [default: 30]
 Frames per second for the gif or terminal output. For gif output, the max fps is 30.
