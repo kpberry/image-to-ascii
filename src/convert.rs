@@ -6,7 +6,7 @@ use std::sync::{mpsc, Arc};
 use std::thread;
 
 use image::imageops::FilterType;
-use image::{DynamicImage, GenericImageView, Luma, GrayImage, Rgb, RgbImage};
+use image::{DynamicImage, GenericImageView, GrayImage, Luma, Rgb, RgbImage};
 
 use crate::font::Font;
 use crate::metrics::{
@@ -45,7 +45,12 @@ pub fn jaccard_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_sc
     score_convert(jaccard_score, font, chunk, rng, noise_scale)
 }
 
-pub fn occlusion_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_scale: f32) -> char {
+pub fn occlusion_convert(
+    font: &Font,
+    chunk: &[f32],
+    rng: &mut ThreadRng,
+    noise_scale: f32,
+) -> char {
     score_convert(occlusion_score, font, chunk, rng, noise_scale)
 }
 
@@ -90,7 +95,8 @@ pub fn grad_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_scale
         .iter()
         .zip(font.grads.iter())
         .map(|(char_intensity, (char_x_grad, char_y_grad))| {
-            let grad = ((x_grad - char_x_grad).powf(2.) + (y_grad - char_y_grad).powf(2.)).powf(0.5);
+            let grad =
+                ((x_grad - char_x_grad).powf(2.) + (y_grad - char_y_grad).powf(2.)).powf(0.5);
             let score = (max_gradient - grad) / (1. + (intensity - char_intensity).powf(2.));
             let noise = rng.gen::<f32>() * noise_scale;
             score + noise
@@ -178,7 +184,10 @@ pub fn chunks_to_chars(
             let _chunk = chunks[i * chunk_len..((i + 1) * chunk_len).min(chunks.len())].to_vec();
             thread::spawn(move || {
                 let mut rng = thread_rng();
-                let chars: Vec<char> = _chunk.iter().map(|chunk| convert(&_font, chunk, &mut rng, noise_scale)).collect();
+                let chars: Vec<char> = _chunk
+                    .iter()
+                    .map(|chunk| convert(&_font, chunk, &mut rng, noise_scale))
+                    .collect();
                 _tx.send((i, chars)).unwrap();
             });
         }
@@ -193,7 +202,10 @@ pub fn chunks_to_chars(
     } else {
         // TODO make pixel_chunk_to_ascii a parameter so that "fast" can be passed in
         let mut rng = thread_rng();
-        chars = chunks.iter().map(|chunk| convert(&font, chunk, &mut rng, noise_scale)).collect();
+        chars = chunks
+            .iter()
+            .map(|chunk| convert(&font, chunk, &mut rng, noise_scale))
+            .collect();
     }
 
     chars
@@ -206,11 +218,14 @@ pub fn img_to_char_rows(
     out_width: usize,
     brightness_offset: f32,
     noise_scale: f32,
-    n_threads: usize
+    n_threads: usize,
 ) -> Vec<Vec<char>> {
     let (width, height) = img.dimensions();
 
-    let out_height = (height as f64 * (out_width as f64 / width as f64) * (font.width as f64/ font.height as f64)).round() as usize;
+    let out_height = (height as f64
+        * (out_width as f64 / width as f64)
+        * (font.width as f64 / font.height as f64))
+        .round() as usize;
     let resized_image = img.resize_exact(
         (out_width * font.width) as u32,
         (out_height * font.height) as u32,
@@ -224,24 +239,33 @@ pub fn img_to_char_rows(
         .map(|&Luma([x])| (x as f32 - brightness_offset) / 255.)
         .collect();
 
-    let chunks = pixels_to_chunks(&pixels, resized_image.width() as usize, resized_image.height() as usize, font.width, font.height);
+    let chunks = pixels_to_chunks(
+        &pixels,
+        resized_image.width() as usize,
+        resized_image.height() as usize,
+        font.width,
+        font.height,
+    );
     let chars = chunks_to_chars(font, &chunks, convert, noise_scale, n_threads);
 
-    (0..out_height * out_width).step_by(out_width).map(|i| chars[i..i + out_width].to_vec()).collect()
+    (0..out_height * out_width)
+        .step_by(out_width)
+        .map(|i| chars[i..i + out_width].to_vec())
+        .collect()
 }
 
 pub fn char_rows_to_string(char_rows: &[Vec<char>]) -> String {
-    char_rows.iter().map(|row| row.iter().collect()).collect::<Vec<String>>().join("\n")
+    char_rows
+        .iter()
+        .map(|row| row.iter().collect())
+        .collect::<Vec<String>>()
+        .join("\n")
 }
 
 pub fn char_rows_to_terminal_color_string(char_rows: &[Vec<char>], img: &DynamicImage) -> String {
     let (n_cols, n_rows) = (char_rows[0].len(), char_rows.len());
     let color_resized_image = img
-        .resize_exact(
-            n_cols as u32,
-            n_rows as u32,
-            FilterType::Nearest,
-        )
+        .resize_exact(n_cols as u32, n_rows as u32, FilterType::Nearest)
         .to_rgb8();
 
     let colored_strings: Vec<String> = char_rows
@@ -251,33 +275,39 @@ pub fn char_rows_to_terminal_color_string(char_rows: &[Vec<char>], img: &Dynamic
         .map(|(c, Rgb([r, g, b]))| format!("{}", c.to_string().truecolor(*r, *g, *b)))
         .collect();
 
-    (0..n_rows * n_cols).step_by(n_cols).map(|i| colored_strings[i..i + n_cols].join("")).collect::<Vec<String>>().join("\n")
+    (0..n_rows * n_cols)
+        .step_by(n_cols)
+        .map(|i| colored_strings[i..i + n_cols].join(""))
+        .collect::<Vec<String>>()
+        .join("\n")
 }
 
 pub fn char_rows_to_html_color_string(char_rows: &[Vec<char>], img: &DynamicImage) -> String {
     let (n_cols, n_rows) = (char_rows[0].len(), char_rows.len());
     let color_resized_image = img
-        .resize_exact(
-            n_cols as u32,
-            n_rows as u32,
-            FilterType::Nearest,
-        )
+        .resize_exact(n_cols as u32, n_rows as u32, FilterType::Nearest)
         .to_rgb8();
 
     let colored_strings: Vec<String> = char_rows
         .into_iter()
         .flatten()
         .zip(color_resized_image.pixels())
-        .map(|(c, Rgb([r, g, b]))| format!("<span style=\"color: rgb({}, {}, {})\">{}</span>", r, g, b, c))
+        .map(|(c, Rgb([r, g, b]))| {
+            format!(
+                "<span style=\"color: rgb({}, {}, {})\">{}</span>",
+                r, g, b, c
+            )
+        })
         .collect();
 
-    (0..n_rows * n_cols).step_by(n_cols).map(|i| colored_strings[i..i + n_cols].join("")).collect::<Vec<String>>().join("\n")
+    (0..n_rows * n_cols)
+        .step_by(n_cols)
+        .map(|i| colored_strings[i..i + n_cols].join(""))
+        .collect::<Vec<String>>()
+        .join("\n")
 }
 
-pub fn char_rows_to_bitmap(
-    char_rows: &[Vec<char>],
-    font: &Font,
-) -> DynamicImage {
+pub fn char_rows_to_bitmap(char_rows: &[Vec<char>], font: &Font) -> DynamicImage {
     let out_width = (char_rows[0].len() * font.width) as u32;
     let out_height = (char_rows.len() * font.height) as u32;
     let mut image = GrayImage::new(out_width, out_height);
@@ -302,15 +332,11 @@ pub fn char_rows_to_bitmap(
 pub fn char_rows_to_color_bitmap(
     char_rows: &[Vec<char>],
     font: &Font,
-    img: &DynamicImage, 
+    img: &DynamicImage,
 ) -> DynamicImage {
     let (n_cols, n_rows) = (char_rows[0].len(), char_rows.len());
     let color_resized_image = img
-        .resize_exact(
-            n_cols as u32,
-            n_rows as u32,
-            FilterType::Nearest,
-        )
+        .resize_exact(n_cols as u32, n_rows as u32, FilterType::Nearest)
         .to_rgb8();
     let pixels: Vec<&Rgb<u8>> = color_resized_image.pixels().collect();
 
@@ -327,7 +353,11 @@ pub fn char_rows_to_color_bitmap(
             for y in 0..font.height {
                 for x in 0..font.width {
                     let intensity = bitmap[y * font.width + x];
-                    let pixel = Rgb([(*r as f32 * intensity) as u8, (*g as f32 * intensity) as u8, (*b as f32 * intensity) as u8]);
+                    let pixel = Rgb([
+                        (*r as f32 * intensity) as u8,
+                        (*g as f32 * intensity) as u8,
+                        (*b as f32 * intensity) as u8,
+                    ]);
                     image.put_pixel((x + x_offset) as u32, (y + y_offset) as u32, pixel);
                 }
             }

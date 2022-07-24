@@ -1,8 +1,11 @@
-use crate::convert::{get_converter};
+use crate::convert::get_converter;
+use crate::convert::{
+    char_rows_to_bitmap, char_rows_to_color_bitmap, char_rows_to_html_color_string,
+    char_rows_to_string, char_rows_to_terminal_color_string,
+};
 use crate::font::Font;
 use crate::gif::write_gif;
 use crate::progress::default_progress_bar;
-use crate::convert::{char_rows_to_bitmap, char_rows_to_color_bitmap, char_rows_to_string, char_rows_to_terminal_color_string, char_rows_to_html_color_string};
 
 use clap::Parser;
 use image::{DynamicImage, GenericImageView};
@@ -157,9 +160,16 @@ fn main() {
 
         if out_extension == "json" {
             let out_frames: Vec<String> = if color {
-                frame_char_rows.iter().zip(frames).map(|(char_rows, frame)| char_rows_to_html_color_string(char_rows, &frame)).collect()
+                frame_char_rows
+                    .iter()
+                    .zip(frames)
+                    .map(|(char_rows, frame)| char_rows_to_html_color_string(char_rows, &frame))
+                    .collect()
             } else {
-                frame_char_rows.iter().map(|char_rows| char_rows_to_string(char_rows)).collect()
+                frame_char_rows
+                    .iter()
+                    .map(|char_rows| char_rows_to_string(char_rows))
+                    .collect()
             };
             let json = serde_json::to_string(&out_frames).unwrap();
             fs::write(path, json).unwrap();
@@ -168,33 +178,46 @@ fn main() {
             let progress = default_progress_bar("Frames", frame_char_rows.len());
             let out_frames: Vec<DynamicImage> = if color {
                 frame_char_rows
-                .iter()
-                .zip(frames)
-                .progress_with(progress)
-                .map(|(char_rows, frame)| char_rows_to_color_bitmap(&char_rows, &font, &frame))
-                .collect()
+                    .iter()
+                    .zip(frames)
+                    .progress_with(progress)
+                    .map(|(char_rows, frame)| char_rows_to_color_bitmap(&char_rows, &font, &frame))
+                    .collect()
             } else {
                 frame_char_rows
-                .iter()
-                .progress_with(progress)
-                .map(|char_rows| char_rows_to_bitmap(&char_rows, &font))
-                .collect()
+                    .iter()
+                    .progress_with(progress)
+                    .map(|char_rows| char_rows_to_bitmap(&char_rows, &font))
+                    .collect()
             };
             write_gif(path, &out_frames, fps);
         } else {
             let (img, color_type) = if color {
-                (char_rows_to_color_bitmap(&frame_char_rows[0], &font, &frames[0]), image::ColorType::Rgb8)
+                (
+                    char_rows_to_color_bitmap(&frame_char_rows[0], &font, &frames[0]),
+                    image::ColorType::Rgb8,
+                )
             } else {
-                (char_rows_to_bitmap(&frame_char_rows[0], &font), image::ColorType::L8)
+                (
+                    char_rows_to_bitmap(&frame_char_rows[0], &font),
+                    image::ColorType::L8,
+                )
             };
             let (width, height) = img.dimensions();
             image::save_buffer(path, &img.into_bytes(), width, height, color_type).unwrap();
         }
     } else {
         let out_frames: Vec<String> = if color {
-            frame_char_rows.iter().zip(frames).map(|(char_rows, frame)| char_rows_to_terminal_color_string(char_rows, &frame)).collect()
+            frame_char_rows
+                .iter()
+                .zip(frames)
+                .map(|(char_rows, frame)| char_rows_to_terminal_color_string(char_rows, &frame))
+                .collect()
         } else {
-            frame_char_rows.iter().map(|char_rows| char_rows_to_string(char_rows)).collect()
+            frame_char_rows
+                .iter()
+                .map(|char_rows| char_rows_to_string(char_rows))
+                .collect()
         };
 
         if in_extension == "gif" {
