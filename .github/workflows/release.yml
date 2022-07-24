@@ -1,0 +1,35 @@
+name: Rust
+
+on: workflow_dispatch
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}-latest
+    strategy:
+      matrix:
+        os: [ubuntu, macos, windows]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build on ${{ matrix.os }}
+      run: cargo build --release --verbose
+    - name: Run tests
+      run: cargo test --release --verbose
+
+    - name: Upload Linux/MacOS executable
+      if: runner.os == 'Linux' || runner.os == 'macOS'
+      uses: actions/upload-artifact@v3.1.0
+      with: 
+        name: ${{ matrix.os }} executable
+        path: target/release/image-to-ascii
+
+    - name: Upload Windows executable
+      if: runner.os == 'Windows'
+      uses: actions/upload-artifact@v3.1.0
+      with: 
+        name: ${{ matrix.os }} executable
+        path: target/release/image-to-ascii.exe
+      

@@ -8,11 +8,14 @@ Converts images and gifs to ASCII art.
 ![mandelbrot](gallery/mandelbrot.gif)
 
 ## Installation:
-You will need to install [Rust](https://www.rust-lang.org/learn/get-started) in order to install this program. 
+### From source:
+You will need to install [Rust](https://www.rust-lang.org/learn/get-started) in order to install this program from source. 
 After installing Rust, installation is simply:
 ```
 cargo install image-to-ascii
 ```
+### Pre-compiled binary:
+You can download the appropriate pre-compiled binary from the Releases section on GitHub. Currently, binaries are built for the latest versions of Ubuntu, Windows, and MacOS.
 
 ## Usage
 Here are some examples of converting between various input and output formats:
