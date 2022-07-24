@@ -33,6 +33,8 @@ struct Cli {
     metric: String,
     #[clap(short, long, default_value_t = 1)]
     threads: usize,
+    #[clap(short, long)]
+    no_color: bool,
     #[clap(short, long, default_value_t = 128.0)]
     brightness_offset: f32,
     #[clap(short, long, default_value_t = 0.0)]
@@ -110,6 +112,9 @@ fn main() {
     let fps = args.fps;
     info!("fps            {}", fps);
 
+    let color = !args.no_color;
+    info!("color          {}", color);
+
     let brightness_offset = args.brightness_offset;
     info!("brightness     {}", brightness_offset);
 
@@ -140,6 +145,7 @@ fn main() {
             &img,
             convert,
             width,
+            color,
             brightness_offset,
             noise_scale,
             threads,

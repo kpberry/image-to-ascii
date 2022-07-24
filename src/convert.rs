@@ -1,3 +1,4 @@
+use colored::Colorize;
 use rand::prelude::ThreadRng;
 use rand::{thread_rng, Rng};
 use std::collections::HashMap;
@@ -5,7 +6,7 @@ use std::sync::{mpsc, Arc};
 use std::thread;
 
 use image::imageops::FilterType;
-use image::{DynamicImage, GenericImageView, Luma, GrayImage};
+use image::{DynamicImage, GenericImageView, Luma, GrayImage, Rgb};
 
 use crate::font::Font;
 use crate::metrics::{
@@ -203,9 +204,10 @@ pub fn img_to_ascii(
     img: &DynamicImage,
     convert: Converter,
     out_width: usize,
+    color: bool,
     brightness_offset: f32,
     noise_scale: f32,
-    n_threads: usize,
+    n_threads: usize
 ) -> String {
     let (width, height) = img.dimensions();
 
@@ -220,9 +222,9 @@ pub fn img_to_ascii(
         FilterType::Nearest,
     );
 
-    let img = img.to_luma8();
+    let img_buffer = img.to_luma8();
 
-    let pixels: Vec<f32> = img
+    let pixels: Vec<f32> = img_buffer
         .pixels()
         .map(|&Luma([x])| (x as f32 - brightness_offset) / 255.)
         .collect();
@@ -230,18 +232,28 @@ pub fn img_to_ascii(
     let chunks = pixels_to_chunks(&pixels, resize_width, resize_height, font.width, font.height);
     let chars = chunks_to_chars(font, &chunks, convert, noise_scale, n_threads);
 
-    let mut char_rows: Vec<Vec<char>> = Vec::new();
+    let strings: Vec<String> = if color {
+        let color_resized_image = img.resize_exact(
+            (resize_width / font.width) as u32,
+            (resize_height / font.height) as u32,
+            FilterType::Nearest
+        ).to_rgb8();
+    
+        chars.iter().zip(color_resized_image.pixels()).map(
+            |(c, Rgb([r, g, b]))| format!("{}", format!("{}", c).truecolor(*r, *g, *b))
+        ).collect()
+    } else {
+        chars.iter().map(|c| c.to_string()).collect()
+    };
+
+    let mut string_rows: Vec<String> = Vec::with_capacity(out_height);
     for j in 0..out_height {
         let start = j * out_width;
         let end = start + out_width;
-        let row = chars[start..end].iter().cloned().collect();
-        char_rows.push(row);
+        let row = strings[start..end].join("");
+        string_rows.push(row);
     }
-    let strings: Vec<String> = char_rows
-        .iter()
-        .map(|chars| chars.iter().collect())
-        .collect();
-    let result = strings.join("\n");
+    let result = string_rows.join("\n");
 
     result
 }
