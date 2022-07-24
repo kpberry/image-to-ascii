@@ -1,10 +1,11 @@
-use crate::convert::{ascii_to_bitmap, get_converter};
+use crate::convert::{get_converter};
 use crate::font::Font;
 use crate::gif::write_gif;
 use crate::progress::default_progress_bar;
+use crate::convert::{char_rows_to_bitmap, char_rows_to_color_bitmap, char_rows_to_string, char_rows_to_terminal_color_string, char_rows_to_html_color_string};
 
 use clap::Parser;
-use image::DynamicImage;
+use image::{DynamicImage, GenericImageView};
 use indicatif::ProgressIterator;
 use std::collections::HashMap;
 use std::fs;
@@ -93,7 +94,7 @@ fn main() {
 
     let font_str = &args.font;
     let font_map: HashMap<&str, &str> = FONTS.iter().cloned().collect();
-    let font: Font = if font_map.contains_key(&font_str.as_ref()) {
+    let font: font::Font = if font_map.contains_key(&font_str.as_ref()) {
         info!("font name      {:?}", font_str);
         let font_data = font_map.get(&font_str.as_ref()).unwrap();
         Font::from_bdf_stream(font_data.as_bytes(), &alphabet)
@@ -128,8 +129,6 @@ fn main() {
     // info!("converter      {:?}", convert);
 
     info!("converting frames to ascii...");
-    let mut output: Vec<String> = Vec::new();
-
     let frames: Vec<DynamicImage> = if in_extension == "gif" {
         let gif = gif::read_gif(image_path);
         gif.iter().cloned().collect()
@@ -138,41 +137,69 @@ fn main() {
         vec![img]
     };
 
+    let mut frame_char_rows: Vec<Vec<Vec<char>>> = Vec::new();
     let progress = default_progress_bar("Frames", frames.len());
     for img in frames.iter().progress_with(progress) {
-        let ascii = convert::img_to_ascii(
+        let ascii = convert::img_to_char_rows(
             &font,
             &img,
             convert,
             width,
-            color,
             brightness_offset,
             noise_scale,
             threads,
         );
-        output.push(ascii);
+        frame_char_rows.push(ascii);
     }
 
     if let Some(path) = out_path {
         let out_extension = path.extension().unwrap();
 
         if out_extension == "json" {
-            let json = serde_json::to_string(&output).unwrap();
+            let out_frames: Vec<String> = if color {
+                frame_char_rows.iter().zip(frames).map(|(char_rows, frame)| char_rows_to_html_color_string(char_rows, &frame)).collect()
+            } else {
+                frame_char_rows.iter().map(|char_rows| char_rows_to_string(char_rows)).collect()
+            };
+            let json = serde_json::to_string(&out_frames).unwrap();
             fs::write(path, json).unwrap();
         } else if out_extension == "gif" {
             info!("converting ascii strings to bitmaps...");
-            let progress = default_progress_bar("Frames", output.len());
-            let frames: Vec<DynamicImage> = output
+            let progress = default_progress_bar("Frames", frame_char_rows.len());
+            let out_frames: Vec<DynamicImage> = if color {
+                frame_char_rows
+                .iter()
+                .zip(frames)
+                .progress_with(progress)
+                .map(|(char_rows, frame)| char_rows_to_color_bitmap(&char_rows, &font, &frame))
+                .collect()
+            } else {
+                frame_char_rows
                 .iter()
                 .progress_with(progress)
-                .map(|frame| ascii_to_bitmap(&font, &frame))
-                .collect();
-            write_gif(path, &frames, fps);
+                .map(|char_rows| char_rows_to_bitmap(&char_rows, &font))
+                .collect()
+            };
+            write_gif(path, &out_frames, fps);
+        } else {
+            let (img, color_type) = if color {
+                (char_rows_to_color_bitmap(&frame_char_rows[0], &font, &frames[0]), image::ColorType::Rgb8)
+            } else {
+                (char_rows_to_bitmap(&frame_char_rows[0], &font), image::ColorType::L8)
+            };
+            let (width, height) = img.dimensions();
+            image::save_buffer(path, &img.into_bytes(), width, height, color_type).unwrap();
         }
     } else {
+        let out_frames: Vec<String> = if color {
+            frame_char_rows.iter().zip(frames).map(|(char_rows, frame)| char_rows_to_terminal_color_string(char_rows, &frame)).collect()
+        } else {
+            frame_char_rows.iter().map(|char_rows| char_rows_to_string(char_rows)).collect()
+        };
+
         if in_extension == "gif" {
             loop {
-                for frame in &output {
+                for frame in &out_frames {
                     let t0 = Instant::now();
                     println!("{}[2J{}", 27 as char, frame);
                     let elapsed = t0.elapsed().as_secs_f64();
@@ -183,7 +210,7 @@ fn main() {
                 }
             }
         } else {
-            println!("{}", output[0]);
+            println!("{}", out_frames[0]);
         }
     }
 }

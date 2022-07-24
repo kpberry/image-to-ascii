@@ -11,13 +11,13 @@
             
             let render = function () {
                 if (frames.length == 0) {
-                    display.innerText = "{Image will show up here}";
+                    display.innerHTML = "{Image will show up here}";
                 } else {
                     currentFrame += 1;
                     if (currentFrame >= frames.length) {
                         currentFrame = 0;
                     }
-                    display.innerText = frames[currentFrame];
+                    display.innerHTML = frames[currentFrame];
                 }
             }
             
