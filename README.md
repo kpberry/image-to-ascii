@@ -27,18 +27,22 @@ image-to-ascii input_image.gif -o output_image.gif --metric dot --font bitocra-1
 image-to-ascii input_image.gif -o output_image.json --metric grad --font fonts/courier.bdf --alphabet alphabets/letters.txt
 ```
 
+### Input
 All image formats readable by [image](https://docs.rs/image/latest/image/) should be supported as inputs and are detected automatically from the input file name.
+Animated .gif files can also be used as inputs; if the output format is .gif or .json, the output will be animated as well.
 
-This program can output gifs or JSON, depending on the provided output file name.
+### Output
+All image formats writable by [image](https://docs.rs/image/latest/image/) should be supported as outputs and are detected automatically from the input file name.
 If the output format is .json and the input format is an animated gif, you can preview the animated result by opening it with viewer.html.
 If no output file is provided, the output will be displayed directly in the terminal; note that most terminals are not designed to keep up with the rate that this program outputs text, so the terminal output can be quite choppy. 
 
-This program only works with monospace bitmap fonts in .bdf format. 
+### Fonts
+This program works with monospace bitmap fonts in .bdf format. 
 If you would like to use a font other than the default, you can find a large collection of free bitmap fonts [here.](https://github.com/Tecate/bitmap-fonts)
 
 ## Arguments
 ### <IMAGE_PATH>
-Path to the input image file. If the input file is an image, the output will be a static image. If the input is a .gif, then the output will be animated.
+Path to the input image file. If the input file is an image, the output will be a static image. If the input is a .gif, then the output will be animated. Has been tested to work with .gif, .png, .jpg, .bmp, .svg, and .json file formats.
 
 ### -a, --alphabet <ALPHABET>            [default: alphabet]
 Name or path specifying an alphabet to use. The provided font must have a glyph for each character in the provided alphabet. Valid alphabet names are:
@@ -49,8 +53,8 @@ Name or path specifying an alphabet to use. The provided font must have a glyph 
 - [minimal](alphabets/minimal.txt)
 - [symbols](alphabets/symbols.txt)
 
-### -b, --brightness-offset <BRIGHTNESS_OFFSET>    [default: 128, min: 0, max: 255]
-Amount subtracted from each grayscale pixel of the image before computing character similarities. Darker images tend to look better with low brightness offsets, while lighter images tend to look better with high ones.
+### -b, --brightness-offset <BRIGHTNESS_OFFSET>    [default: 0, min: 0, max: 255]
+Amount subtracted from each grayscale pixel of the image before computing character similarities. For color output, a brightness offset of 0 is typically appropriate. For black and white output, darker images tend to look better with low brightness offsets, while lighter images tend to look better with high ones.
 
 ### -f, --font \<FONT>                    [default: courier]
 Name or path specifying a font to use. The provided font must be monospace in .bdf format and have a glyph for each character in the provided alphabet. Valid font names are:
@@ -74,8 +78,11 @@ The metric used to determine which character best matches a particular chunk of 
 ### -n, --noise-scale <NOISE_SCALE>                [default: 0]
 Adds noise to the value of the metric for each character. Can either be used to diversify characters in output by "breaking ties" or add a glitch effect, depending on the amount of noise used.
 
+### --no-color
+Causes the output to be black and white. Intended for environments that don't support colored output, e.g., some terminals, some editors or text environments, etc. 
+
 ### -o, --out-path <OUT_PATH>
-Path to write the output to. If no value is provided, output will be displayed in the console. Supports outputting to .json or .gif. Any gif viewer can display .gif output, and viewer.html can be used to display .json gif output.
+Path to write the output to. If no value is provided, output will be displayed in the console. Has been tested to work with .gif, .png, .jpg, .bmp, .svg, and .json file formats. Any gif viewer can display .gif output, and viewer.html can be used to display .json gif output.
 
 ### -t, --threads <THREADS>                        [default: 1]
 Number of threads to use when converting pixel chunks to characters. Higher values can reduce conversion time.
