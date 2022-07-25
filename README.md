@@ -1,11 +1,11 @@
 # ascii-image
 Converts images and gifs to ASCII art.
 
-![mount-fuji](gallery/fuji.gif)
-
-![saint-vincent](gallery/stvincent.gif)
+![mount-fuji](gallery/fuji.png)
 
 ![mandelbrot](gallery/mandelbrot.gif)
+
+![saint-vincent](gallery/stvincent_bw.gif)
 
 ## Installation:
 ### From source:
