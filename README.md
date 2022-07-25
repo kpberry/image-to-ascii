@@ -3,7 +3,7 @@ Converts images and gifs to ASCII art.
 
 ![mount-fuji](gallery/fuji.png)
 
-![mandelbrot](gallery/mandelbrot.gif)
+![mandelbrot](gallery/mandelbrot_small.gif)
 
 ![saint-vincent](gallery/stvincent_bw.gif)
 
