@@ -32,7 +32,7 @@ All image formats readable by [image](https://docs.rs/image/latest/image/) shoul
 Animated .gif files can also be used as inputs; if the output format is .gif or .json, the output will be animated as well.
 
 ### Output
-All image formats writable by [image](https://docs.rs/image/latest/image/) should be supported as outputs and are detected automatically from the input file name.
+All image formats writable by [image](https://docs.rs/image/latest/image/) should be supported as outputs and are detected automatically from the output file name.
 If the output format is .json and the input format is an animated gif, you can preview the animated result by opening it with viewer.html.
 If no output file is provided, the output will be displayed directly in the terminal; note that most terminals are not designed to keep up with the rate that this program outputs text, so the terminal output can be quite choppy. 
 
