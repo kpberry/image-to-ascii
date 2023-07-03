@@ -6,8 +6,11 @@ use image::{DynamicImage, GrayImage, Luma, Rgb, RgbImage, Rgba};
 
 use crate::font::Font;
 use crate::metrics::{
-    avg_color_score, denoised_jaccard_score, dot_score, jaccard_score, movement_toward_clear,
+    avg_color_score, denoised_jaccard_score, movement_toward_clear,
     occlusion_score, Metric,
+};
+use crate::metrics_simd::{
+    dot_score, jaccard_score,
 };
 
 use crate::image::{Image, LumaImage};

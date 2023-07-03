@@ -4,3 +4,4 @@ pub mod gif;
 pub mod metrics;
 pub mod progress;
 pub mod image;
+pub mod metrics_simd;

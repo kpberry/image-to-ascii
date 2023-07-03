@@ -26,6 +26,7 @@ mod font;
 mod gif;
 mod image;
 mod metrics;
+mod metrics_simd;
 mod progress;
 
 #[derive(Parser)]
