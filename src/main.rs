@@ -19,6 +19,7 @@ mod convert;
 mod font;
 mod gif;
 mod metrics;
+mod metrics_simd;
 mod progress;
 
 #[derive(Parser)]

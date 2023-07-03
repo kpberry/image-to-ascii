@@ -10,7 +10,10 @@ use image::{DynamicImage, GenericImageView, GrayImage, Luma, Rgb, RgbImage};
 
 use crate::font::Font;
 use crate::metrics::{
-    avg_color_score, dot_score, jaccard_score, movement_toward_clear, occlusion_score, Metric,
+    avg_color_score, movement_toward_clear, occlusion_score, Metric,
+};
+use crate::metrics_simd::{
+    dot_score, jaccard_score
 };
 
 pub type Converter = fn(&Font, &[f32], &mut ThreadRng, f32) -> char;
