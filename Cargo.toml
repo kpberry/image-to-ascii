@@ -1,6 +1,6 @@
 [package]
 name = "image-to-ascii"
-version = "0.1.1"
+version = "0.2.1"
 authors = ["kpberry"]
 edition = "2021"
 description = "Converts images and gifs to ascii art"
