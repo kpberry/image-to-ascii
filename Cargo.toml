@@ -1,11 +1,12 @@
 [package]
 name = "image-to-ascii"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["kpberry"]
 edition = "2021"
 description = "Converts images and gifs to ascii art"
 license = "MIT"
 homepage = "https://github.com/kpberry/image-to-ascii"
+exclude = ["gallery", ".github"]
 
 [[bin]]
 path = "src/main.rs"
