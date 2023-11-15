@@ -81,6 +81,9 @@ Adds noise to the value of the metric for each character. Can either be used to 
 ### --no-color
 Causes the output to be black and white. Intended for environments that don't support colored output, e.g., some terminals, some editors or text environments, etc. 
 
+### --no-edge-detection
+Causes the output to not use edge detection. This tends to yield images which are closer to the originals, but with less variety in the characters used for the edges.
+
 ### -o, --out-path <OUT_PATH>
 Path to write the output to. If no value is provided, output will be displayed in the console. Has been tested to work with .gif, .png, .jpg, .bmp, .svg, and .json file formats. Any gif viewer can display .gif output, and viewer.html can be used to display .json gif output.
 
