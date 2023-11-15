@@ -27,7 +27,7 @@ mod progress;
 #[derive(Parser)]
 struct Cli {
     image_path: String,
-    #[clap(short, long, default_value_t = String::from("courier"))]
+    #[clap(short, long, default_value_t = String::from("bitocra-13"))]
     font: String,
     #[clap(short, long, default_value_t = String::from("alphabet"))]
     alphabet: String,
