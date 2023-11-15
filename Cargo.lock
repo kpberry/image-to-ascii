@@ -389,7 +389,7 @@ dependencies = [
 
 [[package]]
 name = "image-to-ascii"
-version = "0.1.1"
+version = "0.3.0"
 dependencies = [
  "bdf",
  "clap",
