@@ -188,13 +188,12 @@ fn main() {
             };
             write_gif(path, &out_frames, fps);
         } else {
-            let (img, color_type) = if color {
-                (char_rows_to_color_bitmap(&frame_char_rows[0], &font, &frames[0]), image::ColorType::Rgb8)
+            let img = if color {
+                char_rows_to_color_bitmap(&frame_char_rows[0], &font, &frames[0])
             } else {
-                (char_rows_to_bitmap(&frame_char_rows[0], &font), image::ColorType::L8)
+                char_rows_to_bitmap(&frame_char_rows[0], &font)
             };
-            let (width, height) = img.dimensions();
-            image::save_buffer(path, &img.into_bytes(), width, height, color_type).unwrap();
+            img.save(path).unwrap();
         }
     } else {
         let out_frames: Vec<String> = if color {
