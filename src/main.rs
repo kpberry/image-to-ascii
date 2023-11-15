@@ -34,7 +34,7 @@ struct Cli {
     metric: String,
     #[clap(short, long, default_value_t = 1)]
     threads: usize,
-    #[clap(short, long)]
+    #[clap(long)]
     no_color: bool,
     #[clap(short, long, default_value_t = 0.0)]
     brightness_offset: f32,
@@ -44,6 +44,8 @@ struct Cli {
     out_path: Option<String>,
     #[clap(long, default_value_t = 30.0)]
     fps: f64,
+    #[clap(long)]
+    no_edge_detection: bool
 }
 
 const ALPHABETS: [(&str, &str); 6] = [
@@ -125,6 +127,9 @@ fn main() {
     let threads = args.threads;
     info!("threads        {}", threads);
 
+    let edge_detection = !args.no_edge_detection;
+    info!("edge detection {}", edge_detection);
+
     let convert = get_converter(&metric);
     // info!("converter      {:?}", convert);
 
@@ -148,6 +153,7 @@ fn main() {
             brightness_offset,
             noise_scale,
             threads,
+            edge_detection
         );
         frame_char_rows.push(ascii);
     }

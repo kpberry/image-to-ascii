@@ -2,6 +2,7 @@ use colored::Colorize;
 use rand::prelude::ThreadRng;
 use rand::{thread_rng, Rng};
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::{mpsc, Arc};
 use std::thread;
 
@@ -219,6 +220,7 @@ pub fn img_to_char_rows(
     brightness_offset: f32,
     noise_scale: f32,
     n_threads: usize,
+    edge_detection: bool,
 ) -> Vec<Vec<char>> {
     let (width, height) = img.dimensions();
 
@@ -226,6 +228,15 @@ pub fn img_to_char_rows(
         * (out_width as f64 / width as f64)
         * (font.width as f64 / font.height as f64))
         .round() as usize;
+
+    let edge_detected;
+    let img = if edge_detection {
+        edge_detected = img.filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.]);
+        &edge_detected
+    } else {
+        img
+    };
+
     let resized_image = img.resize_exact(
         (out_width * font.width) as u32,
         (out_height * font.height) as u32,
