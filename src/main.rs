@@ -8,7 +8,7 @@ use crate::gif::write_gif;
 use crate::progress::default_progress_bar;
 
 use clap::Parser;
-use image::{DynamicImage, GenericImageView};
+use image::DynamicImage;
 use indicatif::ProgressIterator;
 use std::collections::HashMap;
 use std::fs;

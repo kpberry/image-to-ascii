@@ -2,7 +2,6 @@ use colored::Colorize;
 use rand::prelude::ThreadRng;
 use rand::{thread_rng, Rng};
 use std::collections::HashMap;
-use std::path::Path;
 use std::sync::{mpsc, Arc};
 use std::thread;
 
