@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::sync::{mpsc, Arc};
 use std::thread;
 
-use image::imageops::FilterType;
+use image::imageops::FilterType::{self, Triangle};
 use image::{DynamicImage, GenericImageView, GrayImage, Luma, Rgb, RgbImage};
 
 use crate::font::Font;
@@ -228,31 +228,35 @@ pub fn img_to_char_rows(
         * (font.width as f64 / font.height as f64))
         .round() as usize;
 
-    let edge_detected;
-    let img = if edge_detection {
-        edge_detected = img.filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.]);
-        &edge_detected
-    } else {
-        img
-    };
-
+    let (out_img_width, out_img_height) = (out_width * font.width, out_height * font.height);
     let resized_image = img.resize_exact(
-        (out_width * font.width) as u32,
-        (out_height * font.height) as u32,
+        out_img_width as u32,
+        out_img_height as u32,
         FilterType::Nearest,
     );
 
-    let img_buffer = resized_image.to_luma8();
-
-    let pixels: Vec<f32> = img_buffer
-        .pixels()
-        .map(|&Luma([x])| (x as f32 - brightness_offset) / 255.)
-        .collect();
+    let pixels: Vec<f32> = if edge_detection {
+        let edge_detected = img
+            .filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.])
+            .resize_exact(out_img_width as u32, out_img_height as u32, Triangle); // this resize is critical!
+        resized_image
+            .to_luma8()
+            .pixels()
+            .zip(edge_detected.to_luma8().pixels())
+            .map(|(&Luma([a]), &Luma([b]))| (a / 4 + b) as f32 / 255.)
+            .collect()
+    } else {
+        resized_image
+            .to_luma8()
+            .pixels()
+            .map(|&Luma([x])| (x as f32 - brightness_offset) / 255.)
+            .collect()
+    };
 
     let chunks = pixels_to_chunks(
         &pixels,
-        resized_image.width() as usize,
-        resized_image.height() as usize,
+        out_img_width as usize,
+        out_img_height as usize,
         font.width,
         font.height,
     );
