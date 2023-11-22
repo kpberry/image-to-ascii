@@ -243,7 +243,9 @@ pub fn img_to_char_rows(
             .to_luma8()
             .pixels()
             .zip(edge_detected.to_luma8().pixels())
-            .map(|(&Luma([a]), &Luma([b]))| (a / 4 + b) as f32 / 255.)
+            .map(|(&Luma([a]), &Luma([b]))| {
+                (a as f32 / 4. + b as f32 - brightness_offset) as f32 / 255.
+            })
             .collect()
     } else {
         resized_image
