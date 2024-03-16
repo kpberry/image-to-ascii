@@ -52,6 +52,7 @@ Name or path specifying an alphabet to use. The provided font must have a glyph 
 - [uppercase](alphabets/uppercase.txt)
 - [minimal](alphabets/minimal.txt)
 - [symbols](alphabets/symbols.txt)
+- [fast](alphabets/fast.txt)
 
 ### -b, --brightness-offset <BRIGHTNESS_OFFSET>    [default: 0, min: 0, max: 255]
 Amount subtracted from each grayscale pixel of the image before computing character similarities. For color output, a brightness offset of 0 is typically appropriate. For black and white output, darker images tend to look better with low brightness offsets, while lighter images tend to look better with high ones.
