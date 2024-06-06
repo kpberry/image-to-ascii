@@ -5,7 +5,7 @@ authors = ["kpberry"]
 edition = "2021"
 description = "Converts images and gifs to ascii art"
 license = "MIT"
-homepage = "https://github.com/kpberry/image-to-ascii"
+repository = "https://github.com/kpberry/image-to-ascii"
 exclude = ["gallery", ".github"]
 
 [[bin]]
