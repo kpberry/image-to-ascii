@@ -35,22 +35,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c4b4d0bd25bd0b74681c0ad21497610ce1b7c91b1022cd21c80c6fbdd9476b0"
 
 [[package]]
-name = "bdf"
-version = "0.6.0"
+name = "bdf-reader"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f550a6818e6f42ccd5883f44e45fff4f68415a0d09abdc81e7d1d78e0780af14"
-dependencies = [
- "bit-set",
- "thiserror",
-]
-
-[[package]]
-name = "bit-set"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84527c7b0452f22545cc010e72d366a435561d2b28b978035550b3778c4d428d"
+checksum = "c61a8c0b2caee4cd83ba4fbe2a57a15fa65aa07a27d751b075af4dd278affcc1"
 dependencies = [
  "bit-vec",
+ "log",
+ "paste",
+ "thiserror",
 ]
 
 [[package]]
@@ -345,7 +338,7 @@ dependencies = [
 name = "image-to-ascii"
 version = "0.4.3"
 dependencies = [
- "bdf",
+ "bdf-reader",
  "clap",
  "colored",
  "env_logger",
@@ -469,6 +462,12 @@ name = "os_str_bytes"
 version = "6.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2355d85b9a3786f481747ced0e0ff2ba35213a1f9bd406ed906554d7af805a1"
+
+[[package]]
+name = "paste"
+version = "1.0.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "png"

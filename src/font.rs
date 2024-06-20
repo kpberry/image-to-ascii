@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::Read;
+use std::io::{BufReader, Read};
 use std::path::Path;
 
 #[derive(Clone)]
@@ -139,18 +139,25 @@ impl Font {
     }
 
     pub fn from_bdf_stream<R: Read>(stream: R, alphabet: &[char]) -> Font {
-        let font: bdf::Font = bdf::read(stream).unwrap();
+        let buf_reader = BufReader::new(stream);
+        let font: bdf_reader::Font = bdf_reader::Font::read(buf_reader).unwrap();
         let mut chars: Vec<Character> = font
             .glyphs()
-            .iter()
-            .map(|(character, glyph)| {
-                let value = *character;
-                let width = glyph.width() as usize;
-                let height = glyph.height() as usize;
+            .into_iter()
+            .map(|glyph| {
+                let value: char = glyph.encoding() as u8 as char;
+                let bbox = glyph.bounding_box();
+                let width = bbox.width as usize;
+                let height = bbox.height as usize;
+                let glyph_bitmap = glyph.bitmap();
                 let mut bitmap = Vec::new();
-                for y in 0..(height as u32) {
-                    for x in 0..(width as u32) {
-                        bitmap.push(if glyph.get(x, y) { 1. } else { 0. });
+                for y in 0..height {
+                    for x in 0..width {
+                        bitmap.push(if glyph_bitmap.get(x, y).unwrap() {
+                            1.
+                        } else {
+                            0.
+                        });
                     }
                 }
                 Character::new(value, bitmap, width, height)
