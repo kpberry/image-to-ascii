@@ -336,7 +336,7 @@ dependencies = [
 
 [[package]]
 name = "image-to-ascii"
-version = "0.4.3"
+version = "0.4.6"
 dependencies = [
  "bdf-reader",
  "clap",
