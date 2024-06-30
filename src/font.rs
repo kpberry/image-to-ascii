@@ -34,6 +34,7 @@ pub struct Font {
     pub chars: Vec<Character>,
     pub intensities: Vec<f32>,
     pub grads: Vec<(f32, f32)>,
+    pub directions: Vec<(f32, f32)>,
     pub char_map: HashMap<char, Character>,
     pub intensity_chars: Vec<Character>,
 }
@@ -125,6 +126,25 @@ impl Font {
             })
             .collect();
 
+        let directions: Vec<(f32, f32)> = chars
+            .iter()
+            .cloned()
+            .map(|chr| {
+                let mut grid = Vec::new();
+                let mut i = 0;
+                for _ in 0..height {
+                    let mut row = Vec::new();
+                    for _ in 0..width {
+                        row.push(chr.bitmap[i]);
+                        i += 1;
+                    }
+                    grid.push(row);
+                }
+
+                direction(&grid)
+            })
+            .collect();
+
         let char_map = chars.iter().map(|c| (c.value, c.clone())).collect();
 
         Font {
@@ -133,6 +153,7 @@ impl Font {
             chars,
             intensities,
             grads,
+            directions,
             char_map,
             intensity_chars,
         }
@@ -180,4 +201,74 @@ impl Font {
             }
         }
     }
+}
+
+fn masked_discrete_convolution_2d(data: &Vec<Vec<f32>>, kernel: &Vec<Vec<f32>>) -> Vec<Vec<f32>> {
+    // offset kernel to keep output size the same
+    let kernel_row_offset = ((kernel.len() - 1) / 2) as i64;
+    let kernel_col_offset = ((kernel[0].len() - 1) / 2) as i64;
+
+    let (data_height, data_width) = (data.len() as i64, data[0].len() as i64);
+
+    let mut result = Vec::new();
+    for r in 0..data_height {
+        let mut row = Vec::new();
+        for c in 0..data_width {
+            // this masking means we only update the total for nonzero values in data, as opposed
+            // to a regular convolution which would update the total for all values in data
+            if data[r as usize][c as usize] == 0.0 {
+                continue;
+            }
+
+            let mut total = 0.0;
+            for kr in 0..(kernel.len() as i64) {
+                for kc in 0..(kernel[0].len() as i64) {
+                    let dr = r + kr - kernel_row_offset;
+                    let dc = c + kc - kernel_col_offset;
+
+                    if dr >= 0 && dr < data_height && dc >= 0 && dc < data_width {
+                        total += kernel[kr as usize][kc as usize] * data[dr as usize][dc as usize];
+                    }
+                }
+            }
+            row.push(total);
+        }
+        result.push(row);
+    }
+
+    result
+}
+
+fn sum_2d(data: &Vec<Vec<f32>>) -> f32 {
+    data.iter().map(|row| row.iter().sum::<f32>()).sum()
+}
+
+fn direction(data: &Vec<Vec<f32>>) -> (f32, f32) {
+    // computes approximately which "direction" a bitmap is facing
+    // uses some special kernels to compute a one-sided "center of mass" for 
+    // each non-zero entry in the bitmap, which is is a local indicator for 
+    // which direction that part of the bitmap is "facing", then averages
+    // them
+    let total_kernel = [[0.0, 0.0, 0.0], [0.0, 1.0, 1.0], [1.0, 1.0, 1.0]]
+        .into_iter()
+        .map(|row| row.into_iter().collect())
+        .collect();
+    let total = sum_2d(&masked_discrete_convolution_2d(data, &total_kernel));
+    if total == 0.0 {
+        return (0.0, 0.0);
+    }
+
+    let x_kernel = [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, 1.0]]
+        .into_iter()
+        .map(|row| row.into_iter().collect())
+        .collect();
+    let y_kernel = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]]
+        .into_iter()
+        .map(|row| row.into_iter().collect())
+        .collect();
+
+    (
+        sum_2d(&masked_discrete_convolution_2d(data, &x_kernel)) / total,
+        sum_2d(&masked_discrete_convolution_2d(data, &y_kernel)) / total,
+    )
 }
