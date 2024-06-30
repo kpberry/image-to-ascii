@@ -8,6 +8,7 @@ use crate::gif::write_gif;
 use crate::progress::default_progress_bar;
 
 use clap::Parser;
+use convert::get_conversion_algorithm;
 use image::DynamicImage;
 use indicatif::ProgressIterator;
 use std::collections::HashMap;
@@ -47,8 +48,8 @@ struct Cli {
     out_path: Option<String>,
     #[clap(long, default_value_t = 30.0)]
     fps: f64,
-    #[clap(long)]
-    no_edge_detection: bool,
+    #[clap(short, long, default_value_t = String::from("edge"))]
+    conversion_algorithm: String
 }
 
 const ALPHABETS: [(&str, &str); 6] = [
@@ -130,11 +131,12 @@ fn main() {
     let threads = args.threads;
     info!("threads        {}", threads);
 
-    let edge_detection = !args.no_edge_detection;
-    info!("edge detection {}", edge_detection);
+    let conversion_algorithm = args.conversion_algorithm;
+    info!("conversion alg {}", conversion_algorithm);
 
     let convert = get_converter(&metric);
-    // info!("converter      {:?}", convert);
+    let conversion_algorithm = get_conversion_algorithm(&conversion_algorithm);
+    info!("converter      {:?}", convert);
 
     info!("converting frames to ascii...");
     let frames: Vec<DynamicImage> = if in_extension == "gif" {
@@ -156,7 +158,7 @@ fn main() {
             brightness_offset,
             noise_scale,
             threads,
-            edge_detection,
+            &conversion_algorithm,
         );
         frame_char_rows.push(ascii);
     }

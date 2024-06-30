@@ -1,6 +1,7 @@
 use colored::Colorize;
 use rand::prelude::ThreadRng;
 use rand::{thread_rng, Rng};
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::sync::{mpsc, Arc};
 use std::thread;
@@ -14,6 +15,11 @@ use crate::metrics::{
 };
 
 pub type Converter = fn(&Font, &[f32], &mut ThreadRng, f32) -> char;
+pub enum ConversionAlgorithm {
+    Base,
+    Edge,
+    TwoPass,
+}
 
 pub fn score_convert(
     score_fn: Metric,
@@ -33,7 +39,7 @@ pub fn score_convert(
         .collect();
     *scores
         .keys()
-        .max_by(|a, b| scores[a].partial_cmp(&scores[b]).unwrap())
+        .max_by(|a, b| scores[a].partial_cmp(&scores[b]).unwrap_or(Ordering::Equal))
         .unwrap()
 }
 
@@ -112,18 +118,67 @@ pub fn grad_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_scale
         .value
 }
 
+pub fn direction_convert(
+    font: &Font,
+    chunk: &[f32],
+    rng: &mut ThreadRng,
+    noise_scale: f32,
+) -> char {
+    let mut x_grad = 0.0;
+    let mut y_grad = 0.0;
+    for i in 0..font.height {
+        for j in 0..font.width - 1 {
+            x_grad += chunk[i * font.width + 1 + j] - chunk[i * font.width + j];
+        }
+    }
+    for i in 0..font.height - 1 {
+        for j in 0..font.width {
+            y_grad += chunk[(i + 1) * font.width + j] - chunk[i * font.width + j];
+        }
+    }
+
+    let (x_dir, y_dir) = (-y_grad, x_grad);
+
+    let scores: Vec<f32> = font
+        .directions
+        .iter()
+        .map(|(char_x_grad, char_y_grad)| {
+            let score = -((x_dir - char_x_grad).powi(2) + (y_dir - char_y_grad).powi(2)).sqrt();
+            let noise = rng.gen::<f32>() * noise_scale;
+            score + noise
+        })
+        .collect();
+
+    font.chars
+        .iter()
+        .zip(scores)
+        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+        .unwrap()
+        .0
+        .value
+}
+
 pub fn get_converter(metric: &str) -> Converter {
-    let convert: Option<Converter> = match &metric[..] {
-        "dot" => Some(dot_convert),
-        "jaccard" => Some(jaccard_convert),
-        "occlusion" => Some(occlusion_convert),
-        "color" => Some(color_convert),
-        "clear" => Some(clear_convert),
-        "fast" => Some(fast_convert),
-        "grad" => Some(grad_convert),
-        _ => None,
-    };
-    convert.expect(&format!("Unsupported metric {}", metric))
+    match &metric[..] {
+        "dot" => dot_convert,
+        "jaccard" => jaccard_convert,
+        "occlusion" => occlusion_convert,
+        "color" => color_convert,
+        "clear" => clear_convert,
+        "fast" => fast_convert,
+        "grad" => grad_convert,
+        "direction" => direction_convert,
+        _ => panic!("Unsupported metric {}", metric),
+    }
+}
+
+pub fn get_conversion_algorithm(algorithm: &str) -> ConversionAlgorithm {
+    match &algorithm[..] {
+        "base" => ConversionAlgorithm::Base,
+        "edge" => ConversionAlgorithm::Edge,
+        "two-pass" => ConversionAlgorithm::TwoPass,
+        _ => panic!("Unsupported conversion algorithm {}", algorithm),
+    }
 }
 
 fn pixels_to_chunks(
@@ -219,7 +274,7 @@ pub fn img_to_char_rows(
     brightness_offset: f32,
     noise_scale: f32,
     n_threads: usize,
-    edge_detection: bool,
+    algorithm: &ConversionAlgorithm,
 ) -> Vec<Vec<char>> {
     let (width, height) = img.dimensions();
 
@@ -235,39 +290,115 @@ pub fn img_to_char_rows(
         FilterType::Nearest,
     );
 
-    let pixels: Vec<f32> = if edge_detection {
-        let edge_detected = img
-            .filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.])
-            .resize_exact(out_img_width as u32, out_img_height as u32, Triangle); // this resize is critical!
-        resized_image
-            .to_luma8()
-            .pixels()
-            .zip(edge_detected.to_luma8().pixels())
-            .map(|(&Luma([a]), &Luma([b]))| {
-                (a as f32 / 4. + b as f32 - brightness_offset) as f32 / 255.
-            })
-            .collect()
-    } else {
-        resized_image
-            .to_luma8()
-            .pixels()
-            .map(|&Luma([x])| (x as f32 - brightness_offset) / 255.)
-            .collect()
-    };
+    match algorithm {
+        ConversionAlgorithm::Base => {
+            let pixels: Vec<f32> = resized_image
+                .to_luma8()
+                .pixels()
+                .map(|&Luma([x])| (x as f32 - brightness_offset) / 255.)
+                .collect();
 
-    let chunks = pixels_to_chunks(
-        &pixels,
-        out_img_width as usize,
-        out_img_height as usize,
-        font.width,
-        font.height,
-    );
-    let chars = chunks_to_chars(font, &chunks, convert, noise_scale, n_threads);
+            let chunks = pixels_to_chunks(
+                &pixels,
+                out_img_width as usize,
+                out_img_height as usize,
+                font.width,
+                font.height,
+            );
+            let chars = chunks_to_chars(font, &chunks, convert, noise_scale, n_threads);
 
-    (0..out_height * out_width)
-        .step_by(out_width)
-        .map(|i| chars[i..i + out_width].to_vec())
-        .collect()
+            (0..out_height * out_width)
+                .step_by(out_width)
+                .map(|i| chars[i..i + out_width].to_vec())
+                .collect()
+        }
+        ConversionAlgorithm::Edge => {
+            let edge_detected = img
+                .filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.])
+                .resize_exact(out_img_width as u32, out_img_height as u32, Triangle); // this resize is critical!
+            let pixels: Vec<f32> = resized_image
+                .to_luma8()
+                .pixels()
+                .zip(edge_detected.to_luma8().pixels())
+                .map(|(&Luma([a]), &Luma([b]))| {
+                    (a as f32 / 4. + b as f32 - brightness_offset) as f32 / 255.
+                })
+                .collect();
+
+            let chunks = pixels_to_chunks(
+                &pixels,
+                out_img_width as usize,
+                out_img_height as usize,
+                font.width,
+                font.height,
+            );
+            let chars = chunks_to_chars(font, &chunks, convert, noise_scale, n_threads);
+
+            (0..out_height * out_width)
+                .step_by(out_width)
+                .map(|i| chars[i..i + out_width].to_vec())
+                .collect()
+        }
+        ConversionAlgorithm::TwoPass => {
+            let luminance_pixels: Vec<f32> = resized_image
+                .to_luma8()
+                .pixels()
+                .map(|&Luma([x])| (x as f32 - brightness_offset) / 255.)
+                .collect();
+
+            let edge_detected = img
+                .filter3x3(&[-1., -2., -1., 0., 0., 0., 1., 2., 1.])
+                .resize_exact(out_img_width as u32, out_img_height as u32, Triangle); // this resize is critical!
+            let edge_detection_pixels: Vec<f32> = edge_detected
+                .to_luma8()
+                .pixels()
+                .map(|&Luma([a])| {
+                    (a as f32 - brightness_offset) / 255.
+                })
+                .collect();
+
+            let luminance_chunks = pixels_to_chunks(
+                &luminance_pixels,
+                out_img_width as usize,
+                out_img_height as usize,
+                font.width,
+                font.height,
+            );
+            let luminance_chars = chunks_to_chars(
+                font,
+                &luminance_chunks,
+                convert,
+                noise_scale,
+                n_threads,
+            );
+
+            let edge_detection_chunks = pixels_to_chunks(
+                &edge_detection_pixels,
+                out_img_width as usize,
+                out_img_height as usize,
+                font.width,
+                font.height,
+            );
+            let edge_detection_chars = chunks_to_chars(
+                font,
+                &edge_detection_chunks,
+                direction_convert,
+                noise_scale,
+                n_threads,
+            );
+
+            let chars: Vec<char> = luminance_chars
+                .iter()
+                .zip(edge_detection_chars)
+                .map(|(&luminance, edge)| if edge == ' ' { luminance } else { edge })
+                .collect();
+
+            (0..out_height * out_width)
+                .step_by(out_width)
+                .map(|i| chars[i..i + out_width].to_vec())
+                .collect()
+        }
+    }
 }
 
 pub fn char_rows_to_string(char_rows: &[Vec<char>]) -> String {
