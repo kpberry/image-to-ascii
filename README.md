@@ -57,7 +57,7 @@ Name or path specifying an alphabet to use. The provided font must have a glyph 
 ### -b, --brightness-offset <BRIGHTNESS_OFFSET>    [default: 0, min: 0, max: 255]
 Amount subtracted from each grayscale pixel of the image before computing character similarities. For color output, a brightness offset of 0 is typically appropriate. For black and white output, darker images tend to look better with low brightness offsets, while lighter images tend to look better with high ones.
 
-### -f, --font \<FONT>                    [default: courier]
+### -f, --font \<FONT>                    [default: bitocra-13]
 Name or path specifying a font to use. The provided font must be monospace in .bdf format and have a glyph for each character in the provided alphabet. Valid font names are:
 - [courier](fonts/courier.bdf)
 - [bitocra-13](fonts/bitocra-13.bdf)
