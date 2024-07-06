@@ -347,7 +347,8 @@ pub fn img_to_char_rows(
                 .collect();
 
             let edge_detected = img
-                .filter3x3(&[-1., -2., -1., 0., 0., 0., 1., 2., 1.])
+                .blur(1.0)
+                .filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.])
                 .resize_exact(out_img_width as u32, out_img_height as u32, Triangle); // this resize is critical!
             let edge_detection_pixels: Vec<f32> = edge_detected
                 .to_luma8()
