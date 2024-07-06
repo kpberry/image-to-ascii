@@ -68,7 +68,7 @@ pub fn clear_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_scal
     score_convert(movement_toward_clear, font, chunk, rng, noise_scale)
 }
 
-pub fn fast_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_scale: f32) -> char {
+pub fn intensity_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_scale: f32) -> char {
     let intensity = chunk.iter().sum::<f32>();
     let noise = rng.gen::<f32>() * noise_scale;
     let index = (intensity + noise) as usize;
@@ -158,10 +158,9 @@ pub fn get_converter(metric: &str) -> Converter {
         "occlusion" => occlusion_convert,
         "color" => color_convert,
         "clear" => clear_convert,
-        "fast" => fast_convert,
-        "grad" => direction_and_intensity_convert,
+        "fast" | "intensity" => intensity_convert,
+        "grad" | "direction-and-intensity" => direction_and_intensity_convert,
         "direction" => direction_convert,
-        "direction-and-intensity" => direction_and_intensity_convert,
         _ => panic!("Unsupported metric {}", metric),
     }
 }
@@ -169,7 +168,7 @@ pub fn get_converter(metric: &str) -> Converter {
 pub fn get_conversion_algorithm(algorithm: &str) -> ConversionAlgorithm {
     match &algorithm[..] {
         "base" => ConversionAlgorithm::Base,
-        "edge" => ConversionAlgorithm::Edge,
+        "edge-augmented" => ConversionAlgorithm::Edge,
         "two-pass" => ConversionAlgorithm::TwoPass,
         _ => panic!("Unsupported conversion algorithm {}", algorithm),
     }
