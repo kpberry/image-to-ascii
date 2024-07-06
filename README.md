@@ -22,9 +22,9 @@ Here are some examples of converting between various input and output formats:
 ```
 image-to-ascii input_image.jpg
 image-to-ascii input_image.gif -o output_image.gif
-image-to-ascii input_image.jpeg -o output_image.json --width 200
+image-to-ascii input_image.jpeg -o output_image.png --width 200
 image-to-ascii input_image.gif -o output_image.gif --metric dot --font bitocra-13 --alphabet minimal
-image-to-ascii input_image.gif -o output_image.json --metric grad --font fonts/courier.bdf --alphabet alphabets/letters.txt
+image-to-ascii input_image.gif -o output_image.json --metric grad --font fonts/courier.bdf --alphabet alphabets/letters.txt --conversion-algorithm base
 ```
 
 ### Input
@@ -52,10 +52,10 @@ Name or path specifying an alphabet to use. The provided font must have a glyph 
 - [uppercase](alphabets/uppercase.txt)
 - [minimal](alphabets/minimal.txt)
 - [symbols](alphabets/symbols.txt)
-- [fast](alphabets/fast.txt)
+- [fast](alphabets/fast.txt) (this should only be used for color output)
 
 ### -b, --brightness-offset <BRIGHTNESS_OFFSET>    [default: 0, min: 0, max: 255]
-Amount subtracted from each grayscale pixel of the image before computing character similarities. For color output, a brightness offset of 0 is typically appropriate. For black and white output, darker images tend to look better with low brightness offsets, while lighter images tend to look better with high ones.
+Amount subtracted from each grayscale pixel of the image before computing character similarities. In most cases, a brightness offset of 0 is typically appropriate. For black and white output with some metrics (dot, jaccard, occlusion, and clear) lighter images tend to look better with a high brightness offset.
 
 ### -f, --font \<FONT>                    [default: bitocra-13]
 Name or path specifying a font to use. The provided font must be monospace in .bdf format and have a glyph for each character in the provided alphabet. Valid font names are:
@@ -67,14 +67,17 @@ Frames per second for the gif or terminal output. For gif output, the max fps is
 
 ### -h, --help                                     Print help information
 
-### -m, --metric <METRIC>                          [default: grad]
+### -m, --metric <METRIC>                          [default: fast]
 The metric used to determine which character best matches a particular chunk of an image. Valid values are:
-- grad:      how similar the gradient and intensity of the pixel values are to those of the bitmap values for a character
-- fast:      how close the brightness of the pixel values is to the brightness of the character bitmap
-- dot:       dot product between pixel values and character bitmap values
-- jaccard:   weighted jaccard index between pixel values and character bitmap values
-- occlusion: how much the pixel values are "occluded" by the character bitmap, or vice versa
-- clear:     how much the font "clears" from the pixel when subtracted from it
+- intensity:               how close the chunk's brightness is to the brightness of the character bitmap
+- fast                     synonym for intensity
+- dot:                     dot product between chunk pixel values and character bitmap values
+- jaccard:                 weighted jaccard index between chunk pixel values and character bitmap values
+- occlusion:               how much the chunk is "occluded" by the character bitmap, or vice versa
+- clear:                   how much the font "clears" from the chunk when subtracted from it
+- direction-and-intensity: how similar the direction and intensity of the chunk are to those of the bitmap values for a character
+- grad:                    synonym for direction-and-intensity
+- direction:               how similar the direction of the chunk pixels is to the overall direction of the character bitmap
 
 ### -n, --noise-scale <NOISE_SCALE>                [default: 0]
 Adds noise to the value of the metric for each character. Can either be used to diversify characters in output by "breaking ties" or add a glitch effect, depending on the amount of noise used.
@@ -82,8 +85,11 @@ Adds noise to the value of the metric for each character. Can either be used to 
 ### --no-color
 Causes the output to be black and white. Intended for environments that don't support colored output, e.g., some terminals, some editors or text environments, etc. 
 
-### --no-edge-detection
-Causes the output to not use edge detection. This tends to yield images which are closer to the originals, but with less variety in the characters used for the edges.
+### --conversion-algorithm <CONVERSION_ALGORITHM>  [default: two-pass]
+The algorithm which is used to convert pixels into characters. Valid values are:
+- base:           convert the pixels using the provided metric only
+- edge-augmented: combine the original image with an edge detection layer, then apply the provided metric to the augmented image
+- two-pass:       convert the detected image edges using the direction metric, then convert any non-edge pixels using the provided metric
 
 ### -o, --out-path <OUT_PATH>
 Path to write the output to. If no value is provided, output will be displayed in the console. Has been tested to work with .gif, .png, .jpg, .bmp, .svg, and .json file formats. Any gif viewer can display .gif output, and viewer.html can be used to display .json gif output.
