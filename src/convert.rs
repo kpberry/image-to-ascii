@@ -264,6 +264,19 @@ pub fn chunks_to_chars(
     chars
 }
 
+pub fn pixels_to_chars(
+    pixels: &[f32],
+    width: usize,
+    height: usize,
+    font: &Font,
+    convert: Converter,
+    noise_scale: f32,
+    n_threads: usize,
+) -> Vec<char> {
+    let chunks = pixels_to_chunks(pixels, width, height, font.width, font.height);
+    chunks_to_chars(font, &chunks, convert, noise_scale, n_threads)
+}
+
 pub fn img_to_char_rows(
     font: &Font,
     img: &DynamicImage,
@@ -288,7 +301,7 @@ pub fn img_to_char_rows(
         FilterType::Nearest,
     );
 
-    match algorithm {
+    let chars: Vec<char> = match algorithm {
         ConversionAlgorithm::Base => {
             let pixels: Vec<f32> = resized_image
                 .to_luma8()
@@ -296,19 +309,15 @@ pub fn img_to_char_rows(
                 .map(|&Luma([x])| (x as f32 - brightness_offset) / 255.)
                 .collect();
 
-            let chunks = pixels_to_chunks(
+            pixels_to_chars(
                 &pixels,
                 out_img_width as usize,
                 out_img_height as usize,
-                font.width,
-                font.height,
-            );
-            let chars = chunks_to_chars(font, &chunks, convert, noise_scale, n_threads);
-
-            (0..out_height * out_width)
-                .step_by(out_width)
-                .map(|i| chars[i..i + out_width].to_vec())
-                .collect()
+                &font,
+                convert,
+                noise_scale,
+                n_threads,
+            )
         }
         ConversionAlgorithm::Edge => {
             let edge_detected = img
@@ -323,22 +332,18 @@ pub fn img_to_char_rows(
                 })
                 .collect();
 
-            let chunks = pixels_to_chunks(
+            pixels_to_chars(
                 &pixels,
                 out_img_width as usize,
                 out_img_height as usize,
-                font.width,
-                font.height,
-            );
-            let chars = chunks_to_chars(font, &chunks, convert, noise_scale, n_threads);
-
-            (0..out_height * out_width)
-                .step_by(out_width)
-                .map(|i| chars[i..i + out_width].to_vec())
-                .collect()
+                &font,
+                convert,
+                noise_scale,
+                n_threads,
+            )
         }
         ConversionAlgorithm::TwoPass => {
-            let luminance_pixels: Vec<f32> = resized_image
+            let luma_pixels: Vec<f32> = resized_image
                 .to_luma8()
                 .pixels()
                 .map(|&Luma([x])| (x as f32 - brightness_offset) / 255.)
@@ -354,43 +359,38 @@ pub fn img_to_char_rows(
                 .map(|&Luma([a])| (a as f32 - brightness_offset) / 255.)
                 .collect();
 
-            let luminance_chunks = pixels_to_chunks(
-                &luminance_pixels,
+            let luma_chars = pixels_to_chars(
+                &luma_pixels,
                 out_img_width as usize,
                 out_img_height as usize,
-                font.width,
-                font.height,
+                &font,
+                convert,
+                noise_scale,
+                n_threads,
             );
-            let luminance_chars =
-                chunks_to_chars(font, &luminance_chunks, convert, noise_scale, n_threads);
 
-            let edge_detection_chunks = pixels_to_chunks(
+            let edge_detection_chars = pixels_to_chars(
                 &edge_detection_pixels,
                 out_img_width as usize,
                 out_img_height as usize,
-                font.width,
-                font.height,
-            );
-            let edge_detection_chars = chunks_to_chars(
-                font,
-                &edge_detection_chunks,
+                &font,
                 direction_convert,
                 noise_scale,
                 n_threads,
             );
 
-            let chars: Vec<char> = luminance_chars
+            luma_chars
                 .iter()
                 .zip(edge_detection_chars)
-                .map(|(&luminance, edge)| if edge == ' ' { luminance } else { edge })
-                .collect();
-
-            (0..out_height * out_width)
-                .step_by(out_width)
-                .map(|i| chars[i..i + out_width].to_vec())
+                .map(|(&luma, edge)| if edge == ' ' { luma } else { edge })
                 .collect()
         }
-    }
+    };
+
+    (0..out_height * out_width)
+        .step_by(out_width)
+        .map(|i| chars[i..i + out_width].to_vec())
+        .collect()
 }
 
 pub fn char_rows_to_string(char_rows: &[Vec<char>]) -> String {
