@@ -97,13 +97,11 @@ pub fn grad_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_scale
     }
 
     let scores: Vec<f32> = font
-        .intensities
+        .chars
         .iter()
-        .zip(font.grads.iter())
-        .map(|(char_intensity, (char_x_grad, char_y_grad))| {
-            let grad =
-                ((x_grad - char_x_grad).powf(2.) + (y_grad - char_y_grad).powf(2.)).powf(0.5);
-            let score = (max_gradient - grad) / (1. + (intensity - char_intensity).powf(2.));
+        .map(|c| {
+            let grad = ((x_grad - c.grad.0).powf(2.) + (y_grad - c.grad.1).powf(2.)).powf(0.5);
+            let score = (max_gradient - grad) / (1. + (intensity - c.intensity).powf(2.));
             let noise = rng.gen::<f32>() * noise_scale;
             score + noise
         })
@@ -140,10 +138,10 @@ pub fn direction_convert(
     let (x_dir, y_dir) = (-y_grad, x_grad);
 
     let scores: Vec<f32> = font
-        .directions
+        .chars
         .iter()
-        .map(|(char_x_grad, char_y_grad)| {
-            let score = -((x_dir - char_x_grad).powi(2) + (y_dir - char_y_grad).powi(2)).sqrt();
+        .map(|c| {
+            let score = -((x_dir - c.direction.0).powi(2) + (y_dir - c.direction.1).powi(2)).sqrt();
             let noise = rng.gen::<f32>() * noise_scale;
             score + noise
         })
@@ -353,9 +351,7 @@ pub fn img_to_char_rows(
             let edge_detection_pixels: Vec<f32> = edge_detected
                 .to_luma8()
                 .pixels()
-                .map(|&Luma([a])| {
-                    (a as f32 - brightness_offset) / 255.
-                })
+                .map(|&Luma([a])| (a as f32 - brightness_offset) / 255.)
                 .collect();
 
             let luminance_chunks = pixels_to_chunks(
@@ -365,13 +361,8 @@ pub fn img_to_char_rows(
                 font.width,
                 font.height,
             );
-            let luminance_chars = chunks_to_chars(
-                font,
-                &luminance_chunks,
-                convert,
-                noise_scale,
-                n_threads,
-            );
+            let luminance_chars =
+                chunks_to_chars(font, &luminance_chunks, convert, noise_scale, n_threads);
 
             let edge_detection_chunks = pixels_to_chunks(
                 &edge_detection_pixels,

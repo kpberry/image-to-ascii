@@ -49,7 +49,7 @@ struct Cli {
     #[clap(long, default_value_t = 30.0)]
     fps: f64,
     #[clap(short, long, default_value_t = String::from("edge"))]
-    conversion_algorithm: String
+    conversion_algorithm: String,
 }
 
 const ALPHABETS: [(&str, &str); 6] = [
