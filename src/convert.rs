@@ -75,33 +75,41 @@ pub fn fast_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_scale
     font.intensity_chars[index].value
 }
 
-pub fn grad_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_scale: f32) -> char {
-    let max_gradient = (font.width * font.height * 4) as f32; // gradient should never be bigger than this
-
-    let intensity = chunk.iter().sum::<f32>();
+fn chunk_direction(chunk: &[f32], width: usize, height: usize) -> (f32, f32) {
     let mut x_grad = 0.0;
     let mut y_grad = 0.0;
-    for i in 0..font.height {
-        for j in 0..font.width - 1 {
-            if chunk[i * font.width + 1 + j] > chunk[i * font.width + j] {
-                x_grad += 1.;
-            }
+    for i in 0..height {
+        for j in 0..width - 1 {
+            x_grad += chunk[i * width + 1 + j] - chunk[i * width + j];
         }
     }
-    for i in 0..font.height - 1 {
-        for j in 0..font.width {
-            if chunk[(i + 1) * font.width + j] > chunk[i * font.width + j] {
-                y_grad += 1.;
-            }
+    for i in 0..height - 1 {
+        for j in 0..width {
+            y_grad += chunk[(i + 1) * width + j] - chunk[i * width + j];
         }
     }
+
+    // contour lines (directions) are perpendicular to the gradient
+    (-y_grad, x_grad)
+}
+
+pub fn direction_and_intensity_convert(
+    font: &Font,
+    chunk: &[f32],
+    rng: &mut ThreadRng,
+    noise_scale: f32,
+) -> char {
+    let max_direction = (font.width * font.height * 4) as f32; // direction should never be bigger than this
+    let (x_dir, y_dir) = chunk_direction(chunk, font.width, font.height);
+    let intensity = chunk.iter().sum::<f32>();
 
     let scores: Vec<f32> = font
         .chars
         .iter()
         .map(|c| {
-            let grad = ((x_grad - c.grad.0).powf(2.) + (y_grad - c.grad.1).powf(2.)).powf(0.5);
-            let score = (max_gradient - grad) / (1. + (intensity - c.intensity).powf(2.));
+            let grad =
+                -((x_dir - c.direction.0).powf(2.) + (y_dir - c.direction.1).powf(2.)).powf(0.5);
+            let score = (max_direction - grad) / (1. + (intensity - c.intensity).powf(2.));
             let noise = rng.gen::<f32>() * noise_scale;
             score + noise
         })
@@ -122,20 +130,7 @@ pub fn direction_convert(
     rng: &mut ThreadRng,
     noise_scale: f32,
 ) -> char {
-    let mut x_grad = 0.0;
-    let mut y_grad = 0.0;
-    for i in 0..font.height {
-        for j in 0..font.width - 1 {
-            x_grad += chunk[i * font.width + 1 + j] - chunk[i * font.width + j];
-        }
-    }
-    for i in 0..font.height - 1 {
-        for j in 0..font.width {
-            y_grad += chunk[(i + 1) * font.width + j] - chunk[i * font.width + j];
-        }
-    }
-
-    let (x_dir, y_dir) = (-y_grad, x_grad);
+    let (x_dir, y_dir) = chunk_direction(chunk, font.width, font.height);
 
     let scores: Vec<f32> = font
         .chars
@@ -164,8 +159,9 @@ pub fn get_converter(metric: &str) -> Converter {
         "color" => color_convert,
         "clear" => clear_convert,
         "fast" => fast_convert,
-        "grad" => grad_convert,
+        "grad" => direction_and_intensity_convert,
         "direction" => direction_convert,
+        "direction-and-intensity" => direction_and_intensity_convert,
         _ => panic!("Unsupported metric {}", metric),
     }
 }

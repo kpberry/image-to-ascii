@@ -10,14 +10,12 @@ pub struct Character {
     pub width: usize,
     pub height: usize,
     pub intensity: f32,
-    pub grad: (f32, f32),
     pub direction: (f32, f32),
 }
 
 impl Character {
     pub fn new(value: char, bitmap: Vec<f32>, width: usize, height: usize) -> Character {
         let intensity = bitmap.iter().sum::<f32>();
-        let grad = Character::grad(&bitmap, width, height);
         let direction = Character::direction(&bitmap, width, height);
 
         Character {
@@ -26,29 +24,8 @@ impl Character {
             width,
             height,
             intensity,
-            grad,
             direction,
         }
-    }
-
-    fn grad(bitmap: &[f32], width: usize, height: usize) -> (f32, f32) {
-        let mut x_grad = 0.0;
-        let mut y_grad = 0.0;
-        for i in 0..height {
-            for j in 0..width - 1 {
-                if bitmap[i * width + 1 + j] > bitmap[i * width + j] {
-                    x_grad += 1.;
-                }
-            }
-        }
-        for i in 0..height - 1 {
-            for j in 0..width {
-                if bitmap[(i + 1) * width + j] > bitmap[i * width + j] {
-                    y_grad += 1.;
-                }
-            }
-        }
-        (x_grad, y_grad)
     }
 
     fn direction(bitmap: &[f32], width: usize, height: usize) -> (f32, f32) {
