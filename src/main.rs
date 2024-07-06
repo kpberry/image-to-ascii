@@ -34,7 +34,7 @@ struct Cli {
     alphabet: String,
     #[clap(short, long, default_value_t = 150)]
     width: usize,
-    #[clap(short, long, default_value_t = String::from("grad"))]
+    #[clap(short, long, default_value_t = String::from("fast"))]
     metric: String,
     #[clap(short, long, default_value_t = 1)]
     threads: usize,
@@ -48,7 +48,7 @@ struct Cli {
     out_path: Option<String>,
     #[clap(long, default_value_t = 30.0)]
     fps: f64,
-    #[clap(short, long, default_value_t = String::from("edge"))]
+    #[clap(short, long, default_value_t = String::from("two-pass"))]
     conversion_algorithm: String,
 }
 
