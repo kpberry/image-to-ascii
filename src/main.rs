@@ -42,8 +42,6 @@ struct Cli {
     no_color: bool,
     #[clap(short, long, default_value_t = 0.0)]
     brightness_offset: f32,
-    #[clap(short, long, default_value_t = 0.0)]
-    noise_scale: f32,
     #[clap(short, long)]
     out_path: Option<String>,
     #[clap(long, default_value_t = 30.0)]
@@ -125,9 +123,6 @@ fn main() {
     let brightness_offset = args.brightness_offset;
     info!("brightness     {}", brightness_offset);
 
-    let noise_scale = args.noise_scale;
-    info!("noise scale    {}", noise_scale);
-
     let threads = args.threads;
     info!("threads        {}", threads);
 
@@ -156,7 +151,6 @@ fn main() {
             convert,
             width,
             brightness_offset,
-            noise_scale,
             threads,
             &conversion_algorithm,
         );

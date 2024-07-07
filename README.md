@@ -79,9 +79,6 @@ The metric used to determine which character best matches a particular chunk of 
 - grad:                    synonym for direction-and-intensity
 - direction:               how similar the direction of the chunk pixels is to the overall direction of the character bitmap
 
-### -n, --noise-scale <NOISE_SCALE>                [default: 0]
-Adds noise to the value of the metric for each character. Can either be used to diversify characters in output by "breaking ties" or add a glitch effect, depending on the amount of noise used.
-
 ### --no-color
 Causes the output to be black and white. Intended for environments that don't support colored output, e.g., some terminals, some editors or text environments, etc. 
 

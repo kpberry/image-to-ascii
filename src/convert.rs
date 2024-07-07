@@ -1,6 +1,4 @@
 use colored::Colorize;
-use rand::prelude::ThreadRng;
-use rand::{thread_rng, Rng};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::sync::{mpsc, Arc};
@@ -14,27 +12,20 @@ use crate::metrics::{
     avg_color_score, dot_score, jaccard_score, movement_toward_clear, occlusion_score, Metric,
 };
 
-pub type Converter = fn(&Font, &[f32], &mut ThreadRng, f32) -> char;
+pub type Converter = fn(&Font, &[f32]) -> char;
 pub enum ConversionAlgorithm {
     Base,
     Edge,
     TwoPass,
 }
 
-pub fn score_convert(
-    score_fn: Metric,
-    font: &Font,
-    chunk: &[f32],
-    rng: &mut ThreadRng,
-    noise_scale: f32,
-) -> char {
+pub fn score_convert(score_fn: Metric, font: &Font, chunk: &[f32]) -> char {
     let scores: HashMap<char, f32> = font
         .chars
         .iter()
         .map(|c| {
             let score = score_fn(&chunk, &c.bitmap);
-            let noise = rng.gen::<f32>() * noise_scale;
-            (c.value, score + noise)
+            (c.value, score)
         })
         .collect();
     *scores
@@ -43,35 +34,29 @@ pub fn score_convert(
         .unwrap()
 }
 
-pub fn dot_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_scale: f32) -> char {
-    score_convert(dot_score, font, chunk, rng, noise_scale)
+pub fn dot_convert(font: &Font, chunk: &[f32]) -> char {
+    score_convert(dot_score, font, chunk)
 }
 
-pub fn jaccard_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_scale: f32) -> char {
-    score_convert(jaccard_score, font, chunk, rng, noise_scale)
+pub fn jaccard_convert(font: &Font, chunk: &[f32]) -> char {
+    score_convert(jaccard_score, font, chunk)
 }
 
-pub fn occlusion_convert(
-    font: &Font,
-    chunk: &[f32],
-    rng: &mut ThreadRng,
-    noise_scale: f32,
-) -> char {
-    score_convert(occlusion_score, font, chunk, rng, noise_scale)
+pub fn occlusion_convert(font: &Font, chunk: &[f32]) -> char {
+    score_convert(occlusion_score, font, chunk)
 }
 
-pub fn color_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_scale: f32) -> char {
-    score_convert(avg_color_score, font, chunk, rng, noise_scale)
+pub fn color_convert(font: &Font, chunk: &[f32]) -> char {
+    score_convert(avg_color_score, font, chunk)
 }
 
-pub fn clear_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_scale: f32) -> char {
-    score_convert(movement_toward_clear, font, chunk, rng, noise_scale)
+pub fn clear_convert(font: &Font, chunk: &[f32]) -> char {
+    score_convert(movement_toward_clear, font, chunk)
 }
 
-pub fn intensity_convert(font: &Font, chunk: &[f32], rng: &mut ThreadRng, noise_scale: f32) -> char {
+pub fn intensity_convert(font: &Font, chunk: &[f32]) -> char {
     let intensity = chunk.iter().sum::<f32>();
-    let noise = rng.gen::<f32>() * noise_scale;
-    let index = (intensity + noise) as usize;
+    let index = intensity as usize;
     font.intensity_chars[index].value
 }
 
@@ -93,12 +78,7 @@ fn chunk_direction(chunk: &[f32], width: usize, height: usize) -> (f32, f32) {
     (-y_grad, x_grad)
 }
 
-pub fn direction_and_intensity_convert(
-    font: &Font,
-    chunk: &[f32],
-    rng: &mut ThreadRng,
-    noise_scale: f32,
-) -> char {
+pub fn direction_and_intensity_convert(font: &Font, chunk: &[f32]) -> char {
     let max_direction = (font.width * font.height * 4) as f32; // direction should never be bigger than this
     let (x_dir, y_dir) = chunk_direction(chunk, font.width, font.height);
     let intensity = chunk.iter().sum::<f32>();
@@ -107,11 +87,8 @@ pub fn direction_and_intensity_convert(
         .chars
         .iter()
         .map(|c| {
-            let grad =
-                -((x_dir - c.direction.0).powf(2.) + (y_dir - c.direction.1).powf(2.)).powf(0.5);
-            let score = (max_direction - grad) / (1. + (intensity - c.intensity).powf(2.));
-            let noise = rng.gen::<f32>() * noise_scale;
-            score + noise
+            let grad = -((x_dir - c.direction.0).powi(2) + (y_dir - c.direction.1).powi(2)).sqrt();
+            (max_direction - grad) / (1. + (intensity - c.intensity).powf(2.))
         })
         .collect();
 
@@ -124,22 +101,13 @@ pub fn direction_and_intensity_convert(
         .value
 }
 
-pub fn direction_convert(
-    font: &Font,
-    chunk: &[f32],
-    rng: &mut ThreadRng,
-    noise_scale: f32,
-) -> char {
+pub fn direction_convert(font: &Font, chunk: &[f32]) -> char {
     let (x_dir, y_dir) = chunk_direction(chunk, font.width, font.height);
 
     let scores: Vec<f32> = font
         .chars
         .iter()
-        .map(|c| {
-            let score = -((x_dir - c.direction.0).powi(2) + (y_dir - c.direction.1).powi(2)).sqrt();
-            let noise = rng.gen::<f32>() * noise_scale;
-            score + noise
-        })
+        .map(|c| -((x_dir - c.direction.0).powi(2) + (y_dir - c.direction.1).powi(2)).sqrt())
         .collect();
 
     font.chars
@@ -217,11 +185,11 @@ pub fn chunks_to_chars(
     font: &Font,
     chunks: &Vec<Vec<f32>>,
     convert: Converter,
-    noise_scale: f32,
     n_threads: usize,
 ) -> Vec<char> {
-    let mut chars: Vec<char> = Vec::with_capacity(chunks.len());
     if n_threads > 1 {
+        let mut chars: Vec<char> = Vec::with_capacity(chunks.len());
+
         let (tx, rx) = mpsc::channel();
         let font_arc = Arc::new(font.clone());
 
@@ -231,11 +199,7 @@ pub fn chunks_to_chars(
             let _font = font_arc.clone();
             let _chunk = chunks[i * chunk_len..((i + 1) * chunk_len).min(chunks.len())].to_vec();
             thread::spawn(move || {
-                let mut rng = thread_rng();
-                let chars: Vec<char> = _chunk
-                    .iter()
-                    .map(|chunk| convert(&_font, chunk, &mut rng, noise_scale))
-                    .collect();
+                let chars: Vec<char> = _chunk.iter().map(|chunk| convert(&_font, chunk)).collect();
                 _tx.send((i, chars)).unwrap();
             });
         }
@@ -247,16 +211,11 @@ pub fn chunks_to_chars(
         for (_, char_vec) in char_vecs {
             chars.extend(char_vec);
         }
-    } else {
-        // TODO make pixel_chunk_to_ascii a parameter so that "fast" can be passed in
-        let mut rng = thread_rng();
-        chars = chunks
-            .iter()
-            .map(|chunk| convert(&font, chunk, &mut rng, noise_scale))
-            .collect();
-    }
 
-    chars
+        chars
+    } else {
+        chunks.iter().map(|chunk| convert(&font, chunk)).collect()
+    }
 }
 
 pub fn pixels_to_chars(
@@ -265,11 +224,10 @@ pub fn pixels_to_chars(
     height: usize,
     font: &Font,
     convert: Converter,
-    noise_scale: f32,
     n_threads: usize,
 ) -> Vec<char> {
     let chunks = pixels_to_chunks(pixels, width, height, font.width, font.height);
-    chunks_to_chars(font, &chunks, convert, noise_scale, n_threads)
+    chunks_to_chars(font, &chunks, convert, n_threads)
 }
 
 pub fn img_to_char_rows(
@@ -278,7 +236,6 @@ pub fn img_to_char_rows(
     convert: Converter,
     out_width: usize,
     brightness_offset: f32,
-    noise_scale: f32,
     n_threads: usize,
     algorithm: &ConversionAlgorithm,
 ) -> Vec<Vec<char>> {
@@ -310,7 +267,6 @@ pub fn img_to_char_rows(
                 out_img_height as usize,
                 &font,
                 convert,
-                noise_scale,
                 n_threads,
             )
         }
@@ -333,7 +289,6 @@ pub fn img_to_char_rows(
                 out_img_height as usize,
                 &font,
                 convert,
-                noise_scale,
                 n_threads,
             )
         }
@@ -360,7 +315,6 @@ pub fn img_to_char_rows(
                 out_img_height as usize,
                 &font,
                 convert,
-                noise_scale,
                 n_threads,
             );
 
@@ -370,7 +324,6 @@ pub fn img_to_char_rows(
                 out_img_height as usize,
                 &font,
                 direction_convert,
-                noise_scale,
                 n_threads,
             );
 
