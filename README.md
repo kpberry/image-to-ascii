@@ -67,22 +67,22 @@ Frames per second for the gif or terminal output. For gif output, the max fps is
 
 ### -h, --help                                     Print help information
 
-### -m, --metric <METRIC>                          [default: fast]
+### -m, --metric <METRIC>                          [default: direction-and-intensity]
 The metric used to determine which character best matches a particular chunk of an image. Valid values are:
 - intensity:               how close the chunk's brightness is to the brightness of the character bitmap
 - fast                     synonym for intensity
+- direction:               how similar the direction of the chunk pixels is to the overall direction of the character bitmap
+- direction-and-intensity: how similar the direction and intensity of the chunk are to those of the bitmap values for a character
+- grad:                    synonym for direction-and-intensity
 - dot:                     dot product between chunk pixel values and character bitmap values
 - jaccard:                 weighted jaccard index between chunk pixel values and character bitmap values
 - occlusion:               how much the chunk is "occluded" by the character bitmap, or vice versa
 - clear:                   how much the font "clears" from the chunk when subtracted from it
-- direction-and-intensity: how similar the direction and intensity of the chunk are to those of the bitmap values for a character
-- grad:                    synonym for direction-and-intensity
-- direction:               how similar the direction of the chunk pixels is to the overall direction of the character bitmap
 
 ### --no-color
 Causes the output to be black and white. Intended for environments that don't support colored output, e.g., some terminals, some editors or text environments, etc. 
 
-### --conversion-algorithm <CONVERSION_ALGORITHM>  [default: two-pass]
+### --conversion-algorithm <CONVERSION_ALGORITHM>  [default: edge-augmented]
 The algorithm which is used to convert pixels into characters. Valid values are:
 - base:           convert the pixels using the provided metric only
 - edge:           perform edge detection, then convert the detected image edges using the direction metric
