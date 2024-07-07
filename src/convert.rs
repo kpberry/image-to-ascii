@@ -13,6 +13,7 @@ pub type Converter = fn(&Font, &[f32]) -> char;
 pub enum ConversionAlgorithm {
     Base,
     Edge,
+    EdgeAugmented,
     TwoPass,
 }
 
@@ -130,7 +131,8 @@ pub fn get_converter(metric: &str) -> Converter {
 pub fn get_conversion_algorithm(algorithm: &str) -> ConversionAlgorithm {
     match &algorithm[..] {
         "base" => ConversionAlgorithm::Base,
-        "edge-augmented" => ConversionAlgorithm::Edge,
+        "edge" => ConversionAlgorithm::Edge,
+        "edge-augmented" => ConversionAlgorithm::EdgeAugmented,
         "two-pass" => ConversionAlgorithm::TwoPass,
         _ => panic!("Unsupported conversion algorithm {}", algorithm),
     }
@@ -216,34 +218,42 @@ pub fn img_to_char_rows(
                 .map(|&Luma([x])| (x as f32 - brightness_offset) / 255.)
                 .collect();
 
-            pixels_to_chars(
-                &pixels,
-                out_img_width as usize,
-                out_img_height as usize,
-                &font,
-                convert,
-            )
+            pixels_to_chars(&pixels, out_img_width, out_img_height, &font, convert)
         }
         ConversionAlgorithm::Edge => {
-            let edge_detected = img
+            let edge_img = img
+                .blur(1.0)
                 .filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.])
-                .resize_exact(out_img_width as u32, out_img_height as u32, Triangle); // this resize is critical!
+                .resize_exact(out_img_width as u32, out_img_height as u32, Triangle);
+            let pixels: Vec<f32> = edge_img
+                .to_luma8()
+                .pixels()
+                .map(|&Luma([a])| (a as f32 - brightness_offset) / 255.)
+                .collect();
+
+            pixels_to_chars(
+                &pixels,
+                out_img_width,
+                out_img_height,
+                &font,
+                direction_convert,
+            )
+        }
+        ConversionAlgorithm::EdgeAugmented => {
+            let edge_img = img
+                .blur(1.0)
+                .filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.])
+                .resize_exact(out_img_width as u32, out_img_height as u32, Triangle);
             let pixels: Vec<f32> = resized_image
                 .to_luma8()
                 .pixels()
-                .zip(edge_detected.to_luma8().pixels())
+                .zip(edge_img.to_luma8().pixels())
                 .map(|(&Luma([a]), &Luma([b]))| {
                     (a as f32 / 4. + b as f32 - brightness_offset) as f32 / 255.
                 })
                 .collect();
 
-            pixels_to_chars(
-                &pixels,
-                out_img_width as usize,
-                out_img_height as usize,
-                &font,
-                convert,
-            )
+            pixels_to_chars(&pixels, out_img_width, out_img_height, &font, convert)
         }
         ConversionAlgorithm::TwoPass => {
             let luma_pixels: Vec<f32> = resized_image
@@ -252,35 +262,30 @@ pub fn img_to_char_rows(
                 .map(|&Luma([x])| (x as f32 - brightness_offset) / 255.)
                 .collect();
 
-            let edge_detected = img
+            let edge_img = img
                 .blur(1.0)
                 .filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.])
-                .resize_exact(out_img_width as u32, out_img_height as u32, Triangle); // this resize is critical!
-            let edge_detection_pixels: Vec<f32> = edge_detected
+                .resize_exact(out_img_width as u32, out_img_height as u32, Triangle);
+            let edge_pixels: Vec<f32> = edge_img
                 .to_luma8()
                 .pixels()
                 .map(|&Luma([a])| (a as f32 - brightness_offset) / 255.)
                 .collect();
 
-            let luma_chars = pixels_to_chars(
-                &luma_pixels,
-                out_img_width as usize,
-                out_img_height as usize,
-                &font,
-                convert,
-            );
+            let luma_chars =
+                pixels_to_chars(&luma_pixels, out_img_width, out_img_height, &font, convert);
 
-            let edge_detection_chars = pixels_to_chars(
-                &edge_detection_pixels,
-                out_img_width as usize,
-                out_img_height as usize,
+            let edge_chars = pixels_to_chars(
+                &edge_pixels,
+                out_img_width,
+                out_img_height,
                 &font,
                 direction_convert,
             );
 
             luma_chars
                 .iter()
-                .zip(edge_detection_chars)
+                .zip(edge_chars)
                 .map(|(&luma, edge)| if edge == ' ' { luma } else { edge })
                 .collect()
         }

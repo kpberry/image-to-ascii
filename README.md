@@ -85,6 +85,7 @@ Causes the output to be black and white. Intended for environments that don't su
 ### --conversion-algorithm <CONVERSION_ALGORITHM>  [default: two-pass]
 The algorithm which is used to convert pixels into characters. Valid values are:
 - base:           convert the pixels using the provided metric only
+- edge:           perform edge detection, then convert the detected image edges using the direction metric
 - edge-augmented: combine the original image with an edge detection layer, then apply the provided metric to the augmented image
 - two-pass:       convert the detected image edges using the direction metric, then convert any non-edge pixels using the provided metric
 
