@@ -1,6 +1,5 @@
 use colored::Colorize;
 use std::cmp::Ordering;
-use std::collections::HashMap;
 
 use image::imageops::FilterType::{self, Triangle};
 use image::{DynamicImage, GenericImageView, GrayImage, Luma, Rgb, RgbImage};
@@ -18,18 +17,15 @@ pub enum ConversionAlgorithm {
 }
 
 pub fn score_convert(score_fn: Metric, font: &Font, chunk: &[f32]) -> char {
-    let scores: HashMap<char, f32> = font
+    let max_index = font
         .chars
         .iter()
-        .map(|c| {
-            let score = score_fn(&chunk, &c.bitmap);
-            (c.value, score)
-        })
-        .collect();
-    *scores
-        .keys()
-        .max_by(|a, b| scores[a].partial_cmp(&scores[b]).unwrap_or(Ordering::Equal))
+        .map(|c| score_fn(&chunk, &c.bitmap))
+        .enumerate()
+        .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal))
         .unwrap()
+        .0;
+    font.chars[max_index].value
 }
 
 pub fn dot_convert(font: &Font, chunk: &[f32]) -> char {
