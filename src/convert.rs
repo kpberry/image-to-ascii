@@ -1,8 +1,6 @@
 use colored::Colorize;
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::sync::{mpsc, Arc};
-use std::thread;
 
 use image::imageops::FilterType::{self, Triangle};
 use image::{DynamicImage, GenericImageView, GrayImage, Luma, Rgb, RgbImage};
@@ -181,53 +179,15 @@ fn pixels_to_chunks(
     chunks
 }
 
-pub fn chunks_to_chars(
-    font: &Font,
-    chunks: &Vec<Vec<f32>>,
-    convert: Converter,
-    n_threads: usize,
-) -> Vec<char> {
-    if n_threads > 1 {
-        let mut chars: Vec<char> = Vec::with_capacity(chunks.len());
-
-        let (tx, rx) = mpsc::channel();
-        let font_arc = Arc::new(font.clone());
-
-        let chunk_len = chunks.len() / n_threads + 1;
-        for i in 0..n_threads {
-            let _tx = tx.clone();
-            let _font = font_arc.clone();
-            let _chunk = chunks[i * chunk_len..((i + 1) * chunk_len).min(chunks.len())].to_vec();
-            thread::spawn(move || {
-                let chars: Vec<char> = _chunk.iter().map(|chunk| convert(&_font, chunk)).collect();
-                _tx.send((i, chars)).unwrap();
-            });
-        }
-        drop(tx);
-
-        let mut char_vecs: Vec<(usize, Vec<char>)> = rx.iter().collect();
-        char_vecs.sort();
-
-        for (_, char_vec) in char_vecs {
-            chars.extend(char_vec);
-        }
-
-        chars
-    } else {
-        chunks.iter().map(|chunk| convert(&font, chunk)).collect()
-    }
-}
-
 pub fn pixels_to_chars(
     pixels: &[f32],
     width: usize,
     height: usize,
     font: &Font,
     convert: Converter,
-    n_threads: usize,
 ) -> Vec<char> {
     let chunks = pixels_to_chunks(pixels, width, height, font.width, font.height);
-    chunks_to_chars(font, &chunks, convert, n_threads)
+    chunks.iter().map(|chunk| convert(&font, chunk)).collect()
 }
 
 pub fn img_to_char_rows(
@@ -236,7 +196,6 @@ pub fn img_to_char_rows(
     convert: Converter,
     out_width: usize,
     brightness_offset: f32,
-    n_threads: usize,
     algorithm: &ConversionAlgorithm,
 ) -> Vec<Vec<char>> {
     let (width, height) = img.dimensions();
@@ -267,7 +226,6 @@ pub fn img_to_char_rows(
                 out_img_height as usize,
                 &font,
                 convert,
-                n_threads,
             )
         }
         ConversionAlgorithm::Edge => {
@@ -289,7 +247,6 @@ pub fn img_to_char_rows(
                 out_img_height as usize,
                 &font,
                 convert,
-                n_threads,
             )
         }
         ConversionAlgorithm::TwoPass => {
@@ -315,7 +272,6 @@ pub fn img_to_char_rows(
                 out_img_height as usize,
                 &font,
                 convert,
-                n_threads,
             );
 
             let edge_detection_chars = pixels_to_chars(
@@ -324,7 +280,6 @@ pub fn img_to_char_rows(
                 out_img_height as usize,
                 &font,
                 direction_convert,
-                n_threads,
             );
 
             luma_chars

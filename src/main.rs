@@ -151,7 +151,6 @@ fn main() {
             convert,
             width,
             brightness_offset,
-            threads,
             &conversion_algorithm,
         );
         frame_char_rows.push(ascii);
