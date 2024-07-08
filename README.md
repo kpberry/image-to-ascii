@@ -95,5 +95,5 @@ Path to write the output to. If no value is provided, output will be displayed i
 ### -t, --threads <THREADS>                        [default: 1]
 Number of threads to use when converting pixel chunks to characters. Higher values can reduce conversion time.
 
-### -w, --width <WIDTH>                            [default: 150]
-The width in characters of the final output. Will preserve the aspect ratio as much as possible while having the output width and height be a multiple of the font width and height.
+### -w, --width <WIDTH>                            [default: image width in characters]
+The width in characters of the final output. Will preserve the aspect ratio as much as possible while having the output width and height be a multiple of the font width and height. If no value is provided, the image width in characters will be used, rounding up to the next whole number of characters.

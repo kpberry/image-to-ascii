@@ -32,8 +32,8 @@ struct Cli {
     font: String,
     #[clap(short, long, default_value_t = String::from("alphabet"))]
     alphabet: String,
-    #[clap(short, long, default_value_t = 150)]
-    width: usize,
+    #[clap(short, long)]
+    width: Option<usize>,
     #[clap(short, long, default_value_t = String::from("direction-and-intensity"))]
     metric: String,
     #[clap(short, long, default_value_t = 1)]
@@ -70,7 +70,7 @@ fn main() {
     let args = Cli::parse();
 
     let width = args.width;
-    info!("width          {}", width);
+    info!("width          {:?}", width);
 
     let image_path = Path::new(&args.image_path);
     info!("image path     {:?}", image_path);

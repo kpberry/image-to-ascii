@@ -188,15 +188,25 @@ pub fn pixels_to_chars(
     chunks.iter().map(|chunk| convert(&font, chunk)).collect()
 }
 
+fn round_up_to_multiple(x: i32, m: i32) -> i32 {
+    x + (-x % m)
+}
+
 pub fn img_to_char_rows(
     font: &Font,
     img: &DynamicImage,
     convert: Converter,
-    out_width: usize,
+    out_width: Option<usize>,
     brightness_offset: f32,
     algorithm: &ConversionAlgorithm,
 ) -> Vec<Vec<char>> {
     let (width, height) = img.dimensions();
+
+    let out_width = if let Some(out_width) = out_width {
+        out_width
+    } else {
+        round_up_to_multiple(width as i32, font.width as i32) as usize / font.width
+    };
 
     let out_height = (height as f64
         * (out_width as f64 / width as f64)
