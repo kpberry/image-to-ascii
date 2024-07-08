@@ -36,8 +36,6 @@ struct Cli {
     width: Option<usize>,
     #[clap(short, long, default_value_t = String::from("direction-and-intensity"))]
     metric: String,
-    #[clap(short, long, default_value_t = 1)]
-    threads: usize,
     #[clap(long)]
     no_color: bool,
     #[clap(short, long, default_value_t = 0.0)]
@@ -122,9 +120,6 @@ fn main() {
 
     let brightness_offset = args.brightness_offset;
     info!("brightness     {}", brightness_offset);
-
-    let threads = args.threads;
-    info!("threads        {}", threads);
 
     let conversion_algorithm = args.conversion_algorithm;
     info!("conversion alg {}", conversion_algorithm);
