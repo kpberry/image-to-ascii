@@ -68,16 +68,16 @@ fn main() {
     let args = Cli::parse();
 
     let width = args.width;
-    info!("width          {:?}", width);
+    info!("width\t{:?}", width);
 
     let image_path = Path::new(&args.image_path);
-    info!("image path     {:?}", image_path);
+    info!("image path\t{:?}", image_path);
     let in_extension = image_path.extension().unwrap();
 
     let alphabet_str = &args.alphabet;
     let alphabet_map: HashMap<&str, &str> = ALPHABETS.iter().cloned().collect();
     let alphabet: Vec<char> = if alphabet_map.contains_key(&alphabet_str.as_ref()) {
-        info!("alphabet name  {:?}", alphabet_str);
+        info!("alphabet name\t{:?}", alphabet_str);
         alphabet_map
             .get(&alphabet_str.as_ref())
             .unwrap()
@@ -85,48 +85,48 @@ fn main() {
             .collect()
     } else {
         let alphabet_path = Path::new(alphabet_str);
-        info!("alphabet path  {:?}", alphabet_path);
+        info!("alphabet path\t{:?}", alphabet_path);
         fs::read(&alphabet_path)
             .unwrap()
             .iter()
             .map(|&b| b as char)
             .collect()
     };
-    info!("alphabet       [{}]", alphabet.iter().collect::<String>());
+    info!("alphabet\t[{}]", alphabet.iter().collect::<String>());
 
     let font_str = &args.font;
     let font_map: HashMap<&str, &str> = FONTS.iter().cloned().collect();
     let font: font::Font = if font_map.contains_key(&font_str.as_ref()) {
-        info!("font name      {:?}", font_str);
+        info!("font name\t{:?}", font_str);
         let font_data = font_map.get(&font_str.as_ref()).unwrap();
         Font::from_bdf_stream(font_data.as_bytes(), &alphabet)
     } else {
         let font_path = Path::new(font_str);
-        info!("font path      {:?}", font_path);
+        info!("font path\t{:?}", font_path);
         Font::from_bdf(font_path, &alphabet)
     };
 
     let metric = args.metric;
-    info!("metric         {}", metric);
+    info!("metric\t{}", metric);
 
     let out_path = args.out_path.as_ref().map(|name| Path::new(name));
-    info!("out path       {:?}", out_path);
+    info!("out path\t{:?}", out_path);
 
     let fps = args.fps;
-    info!("fps            {}", fps);
+    info!("fps\t{}", fps);
 
     let color = !args.no_color;
-    info!("color          {}", color);
+    info!("color\t{}", color);
 
     let brightness_offset = args.brightness_offset;
-    info!("brightness     {}", brightness_offset);
+    info!("brightness\t{}", brightness_offset);
 
     let conversion_algorithm = args.conversion_algorithm;
-    info!("conversion alg {}", conversion_algorithm);
+    info!("conversion alg\t{}", conversion_algorithm);
 
     let convert = get_converter(&metric);
     let conversion_algorithm = get_conversion_algorithm(&conversion_algorithm);
-    info!("converter      {:?}", convert);
+    info!("converter\t{:?}", convert);
 
     info!("converting frames to ascii...");
     let frames: Vec<DynamicImage> = if in_extension == "gif" {
