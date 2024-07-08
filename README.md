@@ -1,9 +1,9 @@
 # ascii-image
 Converts images and gifs to ASCII art.
 
-![mount-fuji](gallery/fuji.png)
+![mount-fuji](gallery/fuji.gif)
 
-![mandelbrot](gallery/mandelbrot_small.gif)
+![mandelbrot](gallery/mandelbrot.gif)
 
 ![saint-vincent](gallery/stvincent_bw.gif)
 
