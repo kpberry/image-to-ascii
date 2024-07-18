@@ -145,7 +145,7 @@ fn main() {
             &img,
             convert,
             width,
-            brightness_offset,
+            brightness_offset / 255.,
             &conversion_algorithm,
         );
         frame_char_rows.push(ascii);

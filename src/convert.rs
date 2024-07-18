@@ -2,7 +2,7 @@ use colored::Colorize;
 use std::cmp::Ordering;
 
 use image::imageops::FilterType::{self, Triangle};
-use image::{DynamicImage, GenericImageView, GrayImage, Luma, Rgb, RgbImage};
+use image::{DynamicImage, GenericImageView, GrayImage, Luma, LumaA, Rgb, RgbImage, Rgba};
 
 use crate::font::Font;
 use crate::metrics::{
@@ -223,9 +223,9 @@ pub fn img_to_char_rows(
     let chars: Vec<char> = match algorithm {
         ConversionAlgorithm::Base => {
             let pixels: Vec<f32> = resized_image
-                .to_luma8()
+                .to_luma_alpha32f()
                 .pixels()
-                .map(|&Luma([x])| (x as f32 - brightness_offset) / 255.)
+                .map(|&LumaA([y, a])| y * a - brightness_offset)
                 .collect();
 
             pixels_to_chars(&pixels, out_img_width, out_img_height, &font, convert)
@@ -236,9 +236,9 @@ pub fn img_to_char_rows(
                 .filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.])
                 .resize_exact(out_img_width as u32, out_img_height as u32, Triangle);
             let pixels: Vec<f32> = edge_img
-                .to_luma8()
+                .to_luma_alpha32f()
                 .pixels()
-                .map(|&Luma([a])| (a as f32 - brightness_offset) / 255.)
+                .map(|&LumaA([y, a])| y * a - brightness_offset)
                 .collect();
 
             pixels_to_chars(
@@ -255,11 +255,11 @@ pub fn img_to_char_rows(
                 .filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.])
                 .resize_exact(out_img_width as u32, out_img_height as u32, Triangle);
             let pixels: Vec<f32> = resized_image
-                .to_luma8()
+                .to_luma_alpha32f()
                 .pixels()
-                .zip(edge_img.to_luma8().pixels())
-                .map(|(&Luma([a]), &Luma([b]))| {
-                    (a as f32 / 4. + b as f32 - brightness_offset) as f32 / 255.
+                .zip(edge_img.to_luma_alpha32f().pixels())
+                .map(|(&LumaA([ay, aa]), &LumaA([by, ba]))| {
+                    ay * aa / 4. + by * ba - brightness_offset
                 })
                 .collect();
 
@@ -267,9 +267,9 @@ pub fn img_to_char_rows(
         }
         ConversionAlgorithm::TwoPass => {
             let luma_pixels: Vec<f32> = resized_image
-                .to_luma8()
+                .to_luma_alpha32f()
                 .pixels()
-                .map(|&Luma([x])| (x as f32 - brightness_offset) / 255.)
+                .map(|&LumaA([y, a])| y * a - brightness_offset)
                 .collect();
 
             let edge_img = img
@@ -277,9 +277,9 @@ pub fn img_to_char_rows(
                 .filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.])
                 .resize_exact(out_img_width as u32, out_img_height as u32, Triangle);
             let edge_pixels: Vec<f32> = edge_img
-                .to_luma8()
+                .to_luma_alpha32f()
                 .pixels()
-                .map(|&Luma([a])| (a as f32 - brightness_offset) / 255.)
+                .map(|&LumaA([y, a])| y * a - brightness_offset)
                 .collect();
 
             let luma_chars =
@@ -319,13 +319,23 @@ pub fn char_rows_to_terminal_color_string(char_rows: &[Vec<char>], img: &Dynamic
     let (n_cols, n_rows) = (char_rows[0].len(), char_rows.len());
     let color_resized_image = img
         .resize_exact(n_cols as u32, n_rows as u32, FilterType::Nearest)
-        .to_rgb8();
+        .to_rgba32f();
 
     let colored_strings: Vec<String> = char_rows
         .into_iter()
         .flatten()
         .zip(color_resized_image.pixels())
-        .map(|(c, Rgb([r, g, b]))| format!("{}", c.to_string().truecolor(*r, *g, *b)))
+        .map(|(c, Rgba([r, g, b, a]))| {
+            let intensity = a * 255.;
+            format!(
+                "{}",
+                c.to_string().truecolor(
+                    (*r * intensity) as u8,
+                    (*g * intensity) as u8,
+                    (*b * intensity) as u8
+                )
+            )
+        })
         .collect();
 
     (0..n_rows * n_cols)
@@ -339,16 +349,16 @@ pub fn char_rows_to_html_color_string(char_rows: &[Vec<char>], img: &DynamicImag
     let (n_cols, n_rows) = (char_rows[0].len(), char_rows.len());
     let color_resized_image = img
         .resize_exact(n_cols as u32, n_rows as u32, FilterType::Nearest)
-        .to_rgb8();
+        .to_rgba8();
 
     let colored_strings: Vec<String> = char_rows
         .into_iter()
         .flatten()
         .zip(color_resized_image.pixels())
-        .map(|(c, Rgb([r, g, b]))| {
+        .map(|(c, Rgba([r, g, b, a]))| {
             format!(
-                "<span style=\"color: rgb({}, {}, {})\">{}</span>",
-                r, g, b, c
+                "<span style=\"color: rgba({}, {}, {}, {})\">{}</span>",
+                r, g, b, a, c
             )
         })
         .collect();
@@ -390,8 +400,8 @@ pub fn char_rows_to_color_bitmap(
     let (n_cols, n_rows) = (char_rows[0].len(), char_rows.len());
     let color_resized_image = img
         .resize_exact(n_cols as u32, n_rows as u32, FilterType::Nearest)
-        .to_rgb8();
-    let pixels: Vec<&Rgb<u8>> = color_resized_image.pixels().collect();
+        .to_rgba32f();
+    let pixels: Vec<&Rgba<f32>> = color_resized_image.pixels().collect();
 
     let out_width = (n_cols * font.width) as u32;
     let out_height = (n_rows * font.height) as u32;
@@ -401,15 +411,15 @@ pub fn char_rows_to_color_bitmap(
         for (i, chr) in row.iter().enumerate() {
             let x_offset = i * font.width;
             let y_offset = j * font.height;
-            let Rgb([r, g, b]) = pixels[j * n_cols as usize + i];
+            let Rgba([r, g, b, a]) = pixels[j * n_cols as usize + i];
             let bitmap = &font.char_map.get(&chr).unwrap().bitmap;
             for y in 0..font.height {
                 for x in 0..font.width {
-                    let intensity = bitmap[y * font.width + x];
+                    let intensity = bitmap[y * font.width + x] * a * 255.;
                     let pixel = Rgb([
-                        (*r as f32 * intensity) as u8,
-                        (*g as f32 * intensity) as u8,
-                        (*b as f32 * intensity) as u8,
+                        (*r * intensity) as u8,
+                        (*g * intensity) as u8,
+                        (*b * intensity) as u8,
                     ]);
                     image.put_pixel((x + x_offset) as u32, (y + y_offset) as u32, pixel);
                 }
