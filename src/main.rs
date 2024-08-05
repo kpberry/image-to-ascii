@@ -7,9 +7,10 @@ use crate::font::Font;
 use crate::gif::write_gif;
 use crate::progress::default_progress_bar;
 
+use ::image::DynamicImage;
 use clap::Parser;
 use convert::get_conversion_algorithm;
-use image::DynamicImage;
+use image::LumaImage;
 use indicatif::ProgressIterator;
 use std::collections::HashMap;
 use std::fs;
@@ -22,6 +23,7 @@ use log::info;
 mod convert;
 mod font;
 mod gif;
+mod image;
 mod metrics;
 mod progress;
 
@@ -133,7 +135,7 @@ fn main() {
         let gif = gif::read_gif(image_path);
         gif.iter().cloned().collect()
     } else {
-        let img = image::open(image_path).unwrap();
+        let img = ::image::open(image_path).unwrap();
         vec![img]
     };
 
@@ -142,7 +144,7 @@ fn main() {
     for img in frames.iter().progress_with(progress) {
         let ascii = convert::img_to_char_rows(
             &font,
-            &img,
+            &LumaImage::from(img),
             convert,
             width,
             brightness_offset / 255.,

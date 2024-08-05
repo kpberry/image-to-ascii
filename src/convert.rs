@@ -1,13 +1,15 @@
 use colored::Colorize;
 use std::cmp::Ordering;
 
-use image::imageops::FilterType::{self, Triangle};
-use image::{DynamicImage, GenericImageView, GrayImage, Luma, LumaA, Rgb, RgbImage, Rgba};
+use image::imageops::FilterType;
+use image::{DynamicImage, GrayImage, Luma, Rgb, RgbImage, Rgba};
 
 use crate::font::Font;
 use crate::metrics::{
     avg_color_score, dot_score, jaccard_score, movement_toward_clear, occlusion_score, Metric,
 };
+
+use crate::image::{Image, LumaImage};
 
 pub type Converter = fn(&Font, &[f32]) -> char;
 pub enum ConversionAlgorithm {
@@ -194,13 +196,13 @@ fn round_up_to_multiple(x: i32, m: i32) -> i32 {
 
 pub fn img_to_char_rows(
     font: &Font,
-    img: &DynamicImage,
+    img: &LumaImage<f32>,
     convert: Converter,
     out_width: Option<usize>,
     brightness_offset: f32,
     algorithm: &ConversionAlgorithm,
 ) -> Vec<Vec<char>> {
-    let (width, height) = img.dimensions();
+    let (width, height) = img.get_dimensions();
 
     let out_width = if let Some(out_width) = out_width {
         out_width
@@ -214,31 +216,28 @@ pub fn img_to_char_rows(
         .round() as usize;
 
     let (out_img_width, out_img_height) = (out_width * font.width, out_height * font.height);
-    let resized_image = img.resize_exact(
-        out_img_width as u32,
-        out_img_height as u32,
-        FilterType::Nearest,
-    );
+    let resized_image = img.resize(out_img_width, out_img_height);
 
     let chars: Vec<char> = match algorithm {
         ConversionAlgorithm::Base => {
             let pixels: Vec<f32> = resized_image
-                .to_luma_alpha32f()
                 .pixels()
-                .map(|&LumaA([y, a])| y * a - brightness_offset)
+                .iter()
+                .map(|y| y - brightness_offset)
                 .collect();
 
             pixels_to_chars(&pixels, out_img_width, out_img_height, &font, convert)
         }
         ConversionAlgorithm::Edge => {
-            let edge_img = img
-                .blur(1.0)
-                .filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.])
-                .resize_exact(out_img_width as u32, out_img_height as u32, Triangle);
+            let mut edge_img = img.clone();
+            edge_img.blur(1.0, 2);
+            edge_img = edge_img.detect_edges();
+            edge_img = edge_img.resize(out_img_width, out_img_height);
+
             let pixels: Vec<f32> = edge_img
-                .to_luma_alpha32f()
                 .pixels()
-                .map(|&LumaA([y, a])| y * a - brightness_offset)
+                .iter()
+                .map(|y| y - brightness_offset)
                 .collect();
 
             pixels_to_chars(
@@ -250,36 +249,35 @@ pub fn img_to_char_rows(
             )
         }
         ConversionAlgorithm::EdgeAugmented => {
-            let edge_img = img
-                .blur(1.0)
-                .filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.])
-                .resize_exact(out_img_width as u32, out_img_height as u32, Triangle);
+            let mut edge_img = img.clone();
+            edge_img.blur(1.0, 2);
+            edge_img = edge_img.detect_edges();
+            edge_img = edge_img.resize(out_img_width, out_img_height);
+
             let pixels: Vec<f32> = resized_image
-                .to_luma_alpha32f()
                 .pixels()
-                .zip(edge_img.to_luma_alpha32f().pixels())
-                .map(|(&LumaA([ay, aa]), &LumaA([by, ba]))| {
-                    ay * aa / 4. + by * ba - brightness_offset
-                })
+                .iter()
+                .zip(edge_img.pixels())
+                .map(|(a, b)| a / 4. + b - brightness_offset)
                 .collect();
 
             pixels_to_chars(&pixels, out_img_width, out_img_height, &font, convert)
         }
         ConversionAlgorithm::TwoPass => {
             let luma_pixels: Vec<f32> = resized_image
-                .to_luma_alpha32f()
                 .pixels()
-                .map(|&LumaA([y, a])| y * a - brightness_offset)
+                .iter()
+                .map(|y| y - brightness_offset)
                 .collect();
 
-            let edge_img = img
-                .blur(1.0)
-                .filter3x3(&[0., -1., 0., -1., 4., -1., 0., -1., 0.])
-                .resize_exact(out_img_width as u32, out_img_height as u32, Triangle);
+            let mut edge_img = img.clone();
+            edge_img.blur(1.0, 2);
+            edge_img = edge_img.detect_edges();
+            edge_img = edge_img.resize(out_img_width, out_img_height);
             let edge_pixels: Vec<f32> = edge_img
-                .to_luma_alpha32f()
                 .pixels()
-                .map(|&LumaA([y, a])| y * a - brightness_offset)
+                .iter()
+                .map(|y| y - brightness_offset)
                 .collect();
 
             let luma_chars =
