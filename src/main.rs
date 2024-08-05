@@ -13,6 +13,7 @@ use convert::get_conversion_algorithm;
 use image::LumaImage;
 use indicatif::ProgressIterator;
 use std::collections::HashMap;
+use std::env::temp_dir;
 use std::fs;
 use std::path::Path;
 use std::thread::sleep;
@@ -189,6 +190,52 @@ fn main() {
                     .collect()
             };
             write_gif(path, &out_frames, fps);
+        } else if out_extension == "mp4" {
+            info!("converting ascii strings to bitmaps...");
+            let progress = default_progress_bar("Frames", frame_char_rows.len());
+            let out_frames: Vec<DynamicImage> = if color {
+                frame_char_rows
+                    .iter()
+                    .zip(frames)
+                    .progress_with(progress)
+                    .map(|(char_rows, frame)| char_rows_to_color_bitmap(&char_rows, &font, &frame))
+                    .collect()
+            } else {
+                frame_char_rows
+                    .iter()
+                    .progress_with(progress)
+                    .map(|char_rows| char_rows_to_bitmap(&char_rows, &font))
+                    .collect()
+            };
+
+            let tmp_dir = temp_dir().join("image-to-ascii-frames");
+            if !tmp_dir.exists() {
+                fs::create_dir(tmp_dir.clone()).unwrap();
+            }
+            info!("writing frames to {}", tmp_dir.to_str().unwrap());
+            for (i, frame) in out_frames
+                .iter()
+                .enumerate()
+                .progress_with(default_progress_bar("Frames", out_frames.len()))
+            {
+                frame
+                    .save(tmp_dir.join(format!("{}.png", i)))
+                    .expect(&format!("Failed to write frame {}", i));
+            }
+            let output = std::process::Command::new("ffmpeg")
+                .args([
+                    "-framerate",
+                    &format!("{}", fps),
+                    "-i",
+                    tmp_dir.join("%d.png").to_str().unwrap(),
+                    "-r",
+                    &format!("{}", fps),
+                    path.to_str().unwrap(),
+                ])
+                .output();
+            if let Err(err) = output {
+                panic!("Error while writing mp4 frames with ffmpeg: {}", err);
+            }
         } else {
             let img = if color {
                 char_rows_to_color_bitmap(&frame_char_rows[0], &font, &frames[0])
