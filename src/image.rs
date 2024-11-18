@@ -2,6 +2,7 @@ use std::f32::consts::PI;
 
 use ::image::{DynamicImage, GenericImageView};
 use image::{GenericImage, Rgba};
+use palette::{LinSrgb, Srgb};
 
 pub trait Image<T> {
     fn get_width(&self) -> usize;
@@ -41,22 +42,32 @@ impl<T: Copy> Image<T> for LumaImage<T> {
 
 impl From<&DynamicImage> for LumaImage<f32> {
     fn from(value: &DynamicImage) -> Self {
-        let (width, height) = value.dimensions();
-        let (width, height) = (width as usize, height as usize);
-        let size = width * height;
-        let mut result = LumaImage {
-            width,
-            height,
-            pixels: vec![0.; size],
-        };
+        // Magic numbers from https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale .
+        let ratios = [0.2126, 0.7152, 0.0722];
+        let raw_lumas = value
+            .pixels()
+            .map(|(_x, _y, pixel)| {
+                let linear: LinSrgb<f32> = Srgb::new(pixel[0], pixel[1], pixel[2]).into_linear();
+                let luma =
+                    linear.red * ratios[0] + linear.green * ratios[1] + linear.blue * ratios[2];
+                let alpha = pixel[3] as f32;
+                luma * alpha
+            })
+            .collect::<Vec<_>>();
+        let max_raw_luma = raw_lumas.iter().cloned().fold(1.0, f32::max);
+        let lumas = raw_lumas
+            .iter()
+            .map(|l| {
+                // Magic scaling for luma, straight from my ass.
+                (l * 1.618) / max_raw_luma
+            })
+            .collect::<Vec<_>>();
 
-        for (x, y, pixel) in value.pixels() {
-            let sum = pixel[0] as f32 + pixel[1] as f32 + pixel[2] as f32;
-            let alpha = pixel[3] as f32;
-            result.set_pixel(x as usize, y as usize, sum * alpha / (3. * 255. * 255.));
+        LumaImage {
+            width: value.width() as usize,
+            height: value.height() as usize,
+            pixels: lumas,
         }
-
-        result
     }
 }
 
