@@ -43,7 +43,7 @@ If you would like to use a font other than the default, you can find a large col
 
 ## Arguments
 ### <IMAGE_PATH>
-Path to the input image file. If the input file is an image, the output will be a static image. If the input is a .gif, then the output will be animated. Has been tested to work with .gif, .png, .jpg, .bmp, .svg, and .json file formats.
+Path to the input image file. If the input file is an image, the output will be a static image. If the input is a .gif, then the output will be animated. Has been tested to work with .gif, .png, .jpg, .bmp, and .svg file formats.
 
 ### -a, --alphabet <ALPHABET>            [default: alphabet]
 Name or path specifying an alphabet to use. The provided font must have a glyph for each character in the provided alphabet. Valid alphabet names are:
