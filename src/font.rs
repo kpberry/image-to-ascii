@@ -188,9 +188,10 @@ impl Font {
         }
     }
 
-    pub fn from_bdf_stream<R: Read>(stream: R, alphabet: &[char]) -> Font {
+    pub fn from_bdf_stream<R: Read>(stream: R, alphabet: &[char], invert: bool) -> Font {
         let buf_reader = BufReader::new(stream);
         let font: bdf_reader::Font = bdf_reader::Font::read(buf_reader).unwrap();
+        let on = !invert as u8 as f32;
         let mut chars: Vec<Character> = font
             .glyphs()
             .into_iter()
@@ -204,9 +205,9 @@ impl Font {
                 for y in 0..height {
                     for x in 0..width {
                         bitmap.push(if glyph_bitmap.get(x, y).unwrap() {
-                            1.
+                            on
                         } else {
-                            0.
+                            1. - on  // off
                         });
                     }
                 }
@@ -218,8 +219,8 @@ impl Font {
         Font::new(&chars, alphabet)
     }
 
-    pub fn from_bdf(path: &Path, alphabet: &[char]) -> Font {
-        Font::from_bdf_stream(File::open(path).unwrap(), alphabet)
+    pub fn from_bdf(path: &Path, alphabet: &[char], invert: bool) -> Font {
+        Font::from_bdf_stream(File::open(path).unwrap(), alphabet, invert)
     }
 
     pub fn _print(&self) {

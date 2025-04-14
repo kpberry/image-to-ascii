@@ -41,6 +41,8 @@ struct Cli {
     metric: String,
     #[clap(long)]
     no_color: bool,
+    #[clap(long)]
+    invert: bool,
     #[clap(short, long, default_value_t = 0.0)]
     brightness_offset: f32,
     #[clap(short, long)]
@@ -97,16 +99,19 @@ fn main() {
     };
     info!("alphabet\t[{}]", alphabet.iter().collect::<String>());
 
+    let invert = args.invert;
+    info!("invert\t{}", invert);
+
     let font_str = &args.font;
     let font_map: HashMap<&str, &str> = FONTS.iter().cloned().collect();
     let font: font::Font = if font_map.contains_key(&font_str.as_ref()) {
         info!("font name\t{:?}", font_str);
         let font_data = font_map.get(&font_str.as_ref()).unwrap();
-        Font::from_bdf_stream(font_data.as_bytes(), &alphabet)
+        Font::from_bdf_stream(font_data.as_bytes(), &alphabet, invert)
     } else {
         let font_path = Path::new(font_str);
         info!("font path\t{:?}", font_path);
-        Font::from_bdf(font_path, &alphabet)
+        Font::from_bdf(font_path, &alphabet, invert)
     };
 
     let metric = args.metric;
