@@ -90,12 +90,17 @@ fn main() {
             .collect()
     } else {
         let alphabet_path = Path::new(alphabet_str);
-        info!("alphabet path\t{:?}", alphabet_path);
-        fs::read(&alphabet_path)
-            .unwrap()
-            .iter()
-            .map(|&b| b as char)
-            .collect()
+        if alphabet_path.exists() {
+            info!("alphabet path\t{:?}", alphabet_path);
+            fs::read(&alphabet_path)
+                .unwrap()
+                .iter()
+                .map(|&b| b as char)
+                .collect()
+        } else {
+            info!("alphabet literal\t{:?}", alphabet_str);
+            alphabet_str.chars().collect()
+        }
     };
     info!("alphabet\t[{}]", alphabet.iter().collect::<String>());
 
