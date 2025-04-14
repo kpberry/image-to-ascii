@@ -96,3 +96,6 @@ Path to write the output to. If no value is provided, output will be displayed i
 
 ### -w, --width <WIDTH>                            [default: image width in characters]
 The width in characters of the final output. Will preserve the aspect ratio as much as possible while having the output width and height be a multiple of the font width and height. If no value is provided, the image width in characters will be used, rounding up to the next whole number of characters.
+
+### -i, --invert <INVERT>                            [default: false]
+Invert the font bitmap values. This happens before the conversion algorithm is applied, so the metrics will try to find the best match against a white background. This is useful for outputting images which are intended to be displayed against a light background. It normally needs to be combined with `--conversion-algorithm base` and can require some tuning of the `--brightness-offset` parameters. Values between -30 and -60 tend to produce good results for a variety of images.
