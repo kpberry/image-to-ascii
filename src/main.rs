@@ -177,6 +177,22 @@ fn main() {
             };
             let json = serde_json::to_string(&out_frames).unwrap();
             fs::write(path, json).unwrap();
+        } else if out_extension == "html" {
+            let mut out_frames: Vec<String> = if color {
+                frame_char_rows
+                    .iter()
+                    .zip(frames)
+                    .map(|(char_rows, frame)| char_rows_to_html_color_string(char_rows, &frame))
+                    .collect()
+            } else {
+                frame_char_rows
+                    .iter()
+                    .map(|char_rows| char_rows_to_string(char_rows))
+                    .collect()
+            };
+            out_frames.insert(0, String::from("<pre>"));
+            out_frames.push(String::from("</pre>"));
+            fs::write(path, out_frames.join("\n")).unwrap();
         } else if out_extension == "gif" {
             info!("converting ascii strings to bitmaps...");
             let progress = default_progress_bar("Frames", frame_char_rows.len());

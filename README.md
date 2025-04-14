@@ -91,7 +91,7 @@ The algorithm which is used to convert pixels into characters. Valid values are:
 - two-pass:       convert the detected image edges using the direction metric, then convert any non-edge pixels using the provided metric
 
 ### -o, --out-path <OUT_PATH>
-Path to write the output to. If no value is provided, output will be displayed in the console. Has been tested to work with .gif, .png, .jpg, .bmp, .svg, and .json file formats. Any gif viewer can display .gif output, and viewer.html can be used to display .json gif output.
+Path to write the output to. If no value is provided, output will be displayed in the console. Has been tested to work with .gif, .png, .jpg, .bmp, .svg, .txt, .html, and .json file formats. Any gif viewer can display .gif output, and viewer.html can be used to display .json gif output.
 
 ### -w, --width <WIDTH>                            [default: image width in characters]
 The width in characters of the final output. Will preserve the aspect ratio as much as possible while having the output width and height be a multiple of the font width and height. If no value is provided, the image width in characters will be used, rounding up to the next whole number of characters.
