@@ -77,6 +77,7 @@ The metric used to determine which character best matches a particular chunk of 
 - grad:                    synonym for direction-and-intensity
 - dot:                     dot product between chunk pixel values and character bitmap values
 - jaccard:                 weighted jaccard index between chunk pixel values and character bitmap values
+- intensity-jaccard:       combination of intensity and jaccard similarity; produces high quality output, but is expensive
 - occlusion:               how much the chunk is "occluded" by the character bitmap, or vice versa
 - clear:                   how much the font "clears" from the chunk when subtracted from it
 

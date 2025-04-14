@@ -6,6 +6,12 @@ pub fn jaccard_score(xs: &[f32], ys: &[f32]) -> f32 {
     intersection / union
 }
 
+pub fn denoised_jaccard_score(xs: &[f32], ys: &[f32]) -> f32 {
+    let intersection: f32 = xs.iter().zip(ys).map(|(x, &y)| x.min(y)).sum();
+    let union: f32 = xs.iter().zip(ys).map(|(x, &y)| x.max(y)).sum();
+    (intersection + 1.0) / (union + 1.0)
+}
+
 pub fn dot_score(xs: &[f32], ys: &[f32]) -> f32 {
     xs.iter().zip(ys).map(|(x, &y)| x * y).sum()
 }

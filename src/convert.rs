@@ -6,7 +6,7 @@ use image::{DynamicImage, GrayImage, Luma, Rgb, RgbImage, Rgba};
 
 use crate::font::Font;
 use crate::metrics::{
-    avg_color_score, dot_score, jaccard_score, movement_toward_clear, occlusion_score, Metric,
+    avg_color_score, denoised_jaccard_score, dot_score, jaccard_score, movement_toward_clear, occlusion_score, Metric
 };
 
 use crate::image::{Image, LumaImage};
@@ -37,6 +37,18 @@ pub fn dot_convert(font: &Font, chunk: &[f32]) -> char {
 
 pub fn jaccard_convert(font: &Font, chunk: &[f32]) -> char {
     score_convert(jaccard_score, font, chunk)
+}
+
+pub fn intensity_jaccard_convert(font: &Font, chunk: &[f32]) -> char {
+    let max_index = font
+        .chars
+        .iter()
+        .map(|c| denoised_jaccard_score(&chunk, &c.bitmap) - (&chunk.iter().sum() - c.intensity).abs())
+        .enumerate()
+        .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal))
+        .unwrap()
+        .0;
+    font.chars[max_index].value
 }
 
 pub fn occlusion_convert(font: &Font, chunk: &[f32]) -> char {
@@ -126,6 +138,7 @@ pub fn get_converter(metric: &str) -> Converter {
         "fast" | "intensity" => intensity_convert,
         "grad" | "direction-and-intensity" => direction_and_intensity_convert,
         "direction" => direction_convert,
+        "intensity-jaccard" => intensity_jaccard_convert,
         _ => panic!("Unsupported metric {}", metric),
     }
 }
