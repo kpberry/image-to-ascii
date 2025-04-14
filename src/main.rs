@@ -43,7 +43,7 @@ struct Cli {
     no_color: bool,
     #[clap(long)]
     invert: bool,
-    #[clap(short, long, default_value_t = 0.0)]
+    #[clap(short, long, default_value_t = 0.0, allow_hyphen_values = true)]
     brightness_offset: f32,
     #[clap(short, long)]
     out_path: Option<String>,
