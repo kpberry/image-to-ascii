@@ -407,6 +407,7 @@ pub fn char_rows_to_color_bitmap(
     char_rows: &[Vec<char>],
     font: &Font,
     img: &DynamicImage,
+    invert: bool,
 ) -> DynamicImage {
     let (n_cols, n_rows) = (char_rows[0].len(), char_rows.len());
     let color_resized_image = img
@@ -426,12 +427,30 @@ pub fn char_rows_to_color_bitmap(
             let bitmap = &font.char_map.get(&chr).unwrap().bitmap;
             for y in 0..font.height {
                 for x in 0..font.width {
-                    let intensity = bitmap[y * font.width + x] * a * 255.;
-                    let pixel = Rgb([
-                        (*r * intensity) as u8,
-                        (*g * intensity) as u8,
-                        (*b * intensity) as u8,
-                    ]);
+                    let v = bitmap[y * font.width + x];
+                    let pixel = if invert {
+                        // Need to make sure that we only color the character
+                        // and not the background, so we have to flip the
+                        // bitmap for the intensity calculation and keep the
+                        // background a uniform color.
+                        if v > 0. {
+                            Rgb([255, 255, 255])
+                        } else {
+                            let intensity = (1. - v) * a * 255.;
+                            Rgb([
+                                (*r * intensity) as u8,
+                                (*g * intensity) as u8,
+                                (*b * intensity) as u8,
+                            ])
+                        }
+                    } else {
+                        let intensity = v * a * 255.;
+                        Rgb([
+                            (*r * intensity) as u8,
+                            (*g * intensity) as u8,
+                            (*b * intensity) as u8,
+                        ])
+                    };
                     image.put_pixel((x + x_offset) as u32, (y + y_offset) as u32, pixel);
                 }
             }

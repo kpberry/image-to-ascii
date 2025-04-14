@@ -206,7 +206,7 @@ fn main() {
                     .iter()
                     .zip(frames)
                     .progress_with(progress)
-                    .map(|(char_rows, frame)| char_rows_to_color_bitmap(&char_rows, &font, &frame))
+                    .map(|(char_rows, frame)| char_rows_to_color_bitmap(&char_rows, &font, &frame, invert))
                     .collect()
             } else {
                 frame_char_rows
@@ -224,7 +224,7 @@ fn main() {
                     .iter()
                     .zip(frames)
                     .progress_with(progress)
-                    .map(|(char_rows, frame)| char_rows_to_color_bitmap(&char_rows, &font, &frame))
+                    .map(|(char_rows, frame)| char_rows_to_color_bitmap(&char_rows, &font, &frame, invert))
                     .collect()
             } else {
                 frame_char_rows
@@ -273,7 +273,7 @@ fn main() {
             fs::write(path, out_frames.join("\n")).unwrap();
         } else {
             let img = if color {
-                char_rows_to_color_bitmap(&frame_char_rows[0], &font, &frames[0])
+                char_rows_to_color_bitmap(&frame_char_rows[0], &font, &frames[0], invert)
             } else {
                 char_rows_to_bitmap(&frame_char_rows[0], &font)
             };
