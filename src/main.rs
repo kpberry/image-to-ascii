@@ -19,7 +19,7 @@ use std::path::Path;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use log::info;
+use log::{info, warn};
 
 mod convert;
 mod font;
@@ -241,6 +241,15 @@ fn main() {
             if let Err(err) = output {
                 panic!("Error while writing mp4 frames with ffmpeg: {}", err);
             }
+        } else if out_extension == "txt" {
+            if color {
+                warn!("color not supported with .txt output; using black and white instead");
+            }
+            let out_frames: Vec<String> = frame_char_rows
+                .iter()
+                .map(|char_rows| char_rows_to_string(char_rows))
+                .collect();
+            fs::write(path, out_frames.join("\n")).unwrap();
         } else {
             let img = if color {
                 char_rows_to_color_bitmap(&frame_char_rows[0], &font, &frames[0])
