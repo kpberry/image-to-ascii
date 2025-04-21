@@ -45,9 +45,9 @@ struct Cli {
     invert: bool,
     #[clap(short = 'b', long, default_value_t = 0.0, allow_hyphen_values = true)]
     brightness_offset: f32,
-    #[clap(short = 's', long, default_value_t = 1.0, allow_hyphen_values = true)]
+    #[clap(short = 's', long, default_value_t = 0.25, allow_hyphen_values = true)]
     brightness_scale: f32,
-    #[clap(long, default_value_t = true)]
+    #[clap(short = 'g', long)]
     naive_grayscale: bool,
     #[clap(short, long)]
     out_path: Option<String>,
@@ -166,7 +166,7 @@ fn main() {
         let grayscale_image = if naive_grayscale {
             LumaImage::naive_grayscale_from(img)
         } else {
-            LumaImage::from(img)
+            LumaImage::colorimetric_grayscale_from(img)
         };
         let ascii = convert::img_to_char_rows(
             &font,

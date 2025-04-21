@@ -60,8 +60,8 @@ fn rgba_to_grayscale(r: u8, g: u8, b: u8, a: u8) -> f32 {
     luma * alpha
 }
 
-impl From<&DynamicImage> for LumaImage<f32> {
-    fn from(value: &DynamicImage) -> Self {
+impl LumaImage<f32> {
+    pub fn colorimetric_grayscale_from(value: &DynamicImage) -> Self {
         let lumas: Vec<f32> = value
             .pixels()
             .map(|(_, _, pixel)| rgba_to_grayscale(pixel[0], pixel[1], pixel[2], pixel[3]))
@@ -73,9 +73,7 @@ impl From<&DynamicImage> for LumaImage<f32> {
             pixels: lumas,
         }
     }
-}
 
-impl LumaImage<f32> {
     pub fn naive_grayscale_from(value: &DynamicImage) -> Self {
         let lumas: Vec<f32> = value
             .pixels()

@@ -6,7 +6,8 @@ use image::{DynamicImage, GrayImage, Luma, Rgb, RgbImage, Rgba};
 
 use crate::font::Font;
 use crate::metrics::{
-    avg_color_score, denoised_jaccard_score, dot_score, jaccard_score, movement_toward_clear, occlusion_score, Metric
+    avg_color_score, denoised_jaccard_score, dot_score, jaccard_score, movement_toward_clear,
+    occlusion_score, Metric,
 };
 
 use crate::image::{Image, LumaImage};
@@ -43,7 +44,9 @@ pub fn intensity_jaccard_convert(font: &Font, chunk: &[f32]) -> char {
     let max_index = font
         .chars
         .iter()
-        .map(|c| denoised_jaccard_score(&chunk, &c.bitmap) - (&chunk.iter().sum() - c.intensity).abs())
+        .map(|c| {
+            denoised_jaccard_score(&chunk, &c.bitmap) - (&chunk.iter().sum() - c.intensity).abs()
+        })
         .enumerate()
         .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal))
         .unwrap()
@@ -272,7 +275,7 @@ pub fn img_to_char_rows(
                 .pixels()
                 .iter()
                 .zip(edge_img.pixels())
-                .map(|(a, b)| a * brightness_scale + b * 4. - brightness_offset)
+                .map(|(a, b)| a * brightness_scale + b - brightness_offset)
                 .collect();
 
             pixels_to_chars(&pixels, out_img_width, out_img_height, &font, convert)
