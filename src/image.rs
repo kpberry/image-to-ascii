@@ -2,7 +2,6 @@ use std::f32::consts::PI;
 
 use ::image::{DynamicImage, GenericImageView};
 use image::{GenericImage, Rgba};
-use palette::{LinSrgb, Srgb};
 
 pub trait Image<T> {
     fn get_width(&self) -> usize;
@@ -40,19 +39,32 @@ impl<T: Copy> Image<T> for LumaImage<T> {
     }
 }
 
+#[inline]
+fn rgb_component_to_linear(component: u8) -> f32 {
+    let c = (component as f32) / 255.0;
+    // Magic numbers from https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale.
+    if c <= 0.04045 {
+        c / 12.92
+    } else {
+        ((c + 0.055) / 1.055).powf(2.4)
+    }
+}
+
+#[inline]
+fn rgba_to_grayscale(r: u8, g: u8, b: u8, a: u8) -> f32 {
+    // Magic numbers from https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale.
+    let luma = 0.2126 * rgb_component_to_linear(r)
+        + 0.7152 * rgb_component_to_linear(g)
+        + 0.0722 * rgb_component_to_linear(b);
+    let alpha = a as f32 / 255.0;
+    luma * alpha
+}
+
 impl From<&DynamicImage> for LumaImage<f32> {
     fn from(value: &DynamicImage) -> Self {
-        // Magic numbers from https://en.wikipedia.org/wiki/Grayscale#Converting_color_to_grayscale .
-        let ratios = [0.2126, 0.7152, 0.0722];
         let raw_lumas = value
             .pixels()
-            .map(|(_x, _y, pixel)| {
-                let linear: LinSrgb<f32> = Srgb::new(pixel[0], pixel[1], pixel[2]).into_linear();
-                let luma =
-                    linear.red * ratios[0] + linear.green * ratios[1] + linear.blue * ratios[2];
-                let alpha = pixel[3] as f32;
-                luma * alpha
-            })
+            .map(|(_, _, pixel)| rgba_to_grayscale(pixel[0], pixel[1], pixel[2], pixel[3]))
             .collect::<Vec<_>>();
         let max_raw_luma = raw_lumas.iter().cloned().fold(1.0, f32::max);
         let lumas = raw_lumas
