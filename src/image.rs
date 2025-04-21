@@ -62,18 +62,29 @@ fn rgba_to_grayscale(r: u8, g: u8, b: u8, a: u8) -> f32 {
 
 impl From<&DynamicImage> for LumaImage<f32> {
     fn from(value: &DynamicImage) -> Self {
-        let raw_lumas = value
+        let lumas: Vec<f32> = value
             .pixels()
             .map(|(_, _, pixel)| rgba_to_grayscale(pixel[0], pixel[1], pixel[2], pixel[3]))
-            .collect::<Vec<_>>();
-        let max_raw_luma = raw_lumas.iter().cloned().fold(1.0, f32::max);
-        let lumas = raw_lumas
-            .iter()
-            .map(|l| {
-                // Magic scaling for luma, straight from my ass.
-                (l * 1.618) / max_raw_luma
+            .collect();
+
+        LumaImage {
+            width: value.width() as usize,
+            height: value.height() as usize,
+            pixels: lumas,
+        }
+    }
+}
+
+impl LumaImage<f32> {
+    pub fn naive_grayscale_from(value: &DynamicImage) -> Self {
+        let lumas: Vec<f32> = value
+            .pixels()
+            .map(|(_, _, pixel)| {
+                let sum = pixel[0] as f32 + pixel[1] as f32 + pixel[2] as f32;
+                let alpha = pixel[3] as f32;
+                sum * alpha / (3. * 255. * 255.)
             })
-            .collect::<Vec<_>>();
+            .collect();
 
         LumaImage {
             width: value.width() as usize,

@@ -213,6 +213,7 @@ pub fn img_to_char_rows(
     convert: Converter,
     out_width: Option<usize>,
     brightness_offset: f32,
+    brightness_scale: f32,
     algorithm: &ConversionAlgorithm,
 ) -> Vec<Vec<char>> {
     let (width, height) = img.get_dimensions();
@@ -236,7 +237,7 @@ pub fn img_to_char_rows(
             let pixels: Vec<f32> = resized_image
                 .pixels()
                 .iter()
-                .map(|y| y - brightness_offset)
+                .map(|y| y * brightness_scale - brightness_offset)
                 .collect();
 
             pixels_to_chars(&pixels, out_img_width, out_img_height, &font, convert)
@@ -250,7 +251,7 @@ pub fn img_to_char_rows(
             let pixels: Vec<f32> = edge_img
                 .pixels()
                 .iter()
-                .map(|y| y - brightness_offset)
+                .map(|y| y * brightness_scale - brightness_offset)
                 .collect();
 
             pixels_to_chars(
@@ -271,7 +272,7 @@ pub fn img_to_char_rows(
                 .pixels()
                 .iter()
                 .zip(edge_img.pixels())
-                .map(|(a, b)| a / 4. + b - brightness_offset)
+                .map(|(a, b)| a * brightness_scale + b * 4. - brightness_offset)
                 .collect();
 
             pixels_to_chars(&pixels, out_img_width, out_img_height, &font, convert)
@@ -280,7 +281,7 @@ pub fn img_to_char_rows(
             let luma_pixels: Vec<f32> = resized_image
                 .pixels()
                 .iter()
-                .map(|y| y - brightness_offset)
+                .map(|y| y * brightness_scale - brightness_offset)
                 .collect();
 
             let mut edge_img = img.clone();
@@ -290,7 +291,7 @@ pub fn img_to_char_rows(
             let edge_pixels: Vec<f32> = edge_img
                 .pixels()
                 .iter()
-                .map(|y| y - brightness_offset)
+                .map(|y| y * brightness_scale - brightness_offset)
                 .collect();
 
             let luma_chars =

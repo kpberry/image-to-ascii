@@ -43,8 +43,12 @@ struct Cli {
     no_color: bool,
     #[clap(long)]
     invert: bool,
-    #[clap(short, long, default_value_t = 0.0, allow_hyphen_values = true)]
+    #[clap(short = 'b', long, default_value_t = 0.0, allow_hyphen_values = true)]
     brightness_offset: f32,
+    #[clap(short = 's', long, default_value_t = 1.0, allow_hyphen_values = true)]
+    brightness_scale: f32,
+    #[clap(long, default_value_t = true)]
+    naive_grayscale: bool,
     #[clap(short, long)]
     out_path: Option<String>,
     #[clap(long, default_value_t = 30.0)]
@@ -132,7 +136,13 @@ fn main() {
     info!("color\t{}", color);
 
     let brightness_offset = args.brightness_offset;
-    info!("brightness\t{}", brightness_offset);
+    info!("brightness offset\t{}", brightness_offset);
+
+    let brightness_scale = args.brightness_scale;
+    info!("brightness scale\t{}", brightness_scale);
+
+    let naive_grayscale = args.naive_grayscale;
+    info!("naive grayscale\t{}", naive_grayscale);
 
     let conversion_algorithm = args.conversion_algorithm;
     info!("conversion alg\t{}", conversion_algorithm);
@@ -153,12 +163,18 @@ fn main() {
     let mut frame_char_rows: Vec<Vec<Vec<char>>> = Vec::new();
     let progress = default_progress_bar("Frames", frames.len());
     for img in frames.iter().progress_with(progress) {
+        let grayscale_image = if naive_grayscale {
+            LumaImage::naive_grayscale_from(img)
+        } else {
+            LumaImage::from(img)
+        };
         let ascii = convert::img_to_char_rows(
             &font,
-            &LumaImage::from(img),
+            &grayscale_image,
             convert,
             width,
             brightness_offset / 255.,
+            brightness_scale,
             &conversion_algorithm,
         );
         frame_char_rows.push(ascii);
