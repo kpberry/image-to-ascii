@@ -217,6 +217,7 @@ pub fn img_to_char_rows(
     out_width: Option<usize>,
     brightness_offset: f32,
     brightness_scale: f32,
+    edge_brightness_scale: f32,
     algorithm: &ConversionAlgorithm,
 ) -> Vec<Vec<char>> {
     let (width, height) = img.get_dimensions();
@@ -275,7 +276,7 @@ pub fn img_to_char_rows(
                 .pixels()
                 .iter()
                 .zip(edge_img.pixels())
-                .map(|(a, b)| a * brightness_scale + b - brightness_offset)
+                .map(|(a, b)| a * brightness_scale + b * edge_brightness_scale - brightness_offset)
                 .collect();
 
             pixels_to_chars(&pixels, out_img_width, out_img_height, &font, convert)

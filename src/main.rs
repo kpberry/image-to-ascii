@@ -49,6 +49,8 @@ struct Cli {
     brightness_scale: f32,
     #[clap(short = 'g', long)]
     naive_grayscale: bool,
+    #[clap(long, default_value_t = 1.0)]
+    edge_brightness_scale: f32,
     #[clap(short, long)]
     out_path: Option<String>,
     #[clap(long, default_value_t = 30.0)]
@@ -141,6 +143,9 @@ fn main() {
     let brightness_scale = args.brightness_scale;
     info!("brightness scale\t{}", brightness_scale);
 
+    let edge_brightness_scale = args.edge_brightness_scale;
+    info!("edge brightness scale\t{}", edge_brightness_scale);
+
     let naive_grayscale = args.naive_grayscale;
     info!("naive grayscale\t{}", naive_grayscale);
 
@@ -175,6 +180,7 @@ fn main() {
             width,
             brightness_offset / 255.,
             brightness_scale,
+            edge_brightness_scale,
             &conversion_algorithm,
         );
         frame_char_rows.push(ascii);
