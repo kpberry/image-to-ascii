@@ -263,7 +263,7 @@ pub fn get_gaussian_kernel(sigma: f32, size: isize) -> Vec<f32> {
 
 pub fn normalize_f32(v: &[f32]) -> Vec<f32> {
     let inv_total = 1. / v.iter().sum::<f32>();
-    v.iter().cloned().map(|x| (x * inv_total)).collect()
+    v.iter().cloned().map(|x| x * inv_total).collect()
 }
 
 pub fn lerp_f32(a: f32, t: f32, b: f32) -> f32 {
