@@ -3,12 +3,12 @@ use image::{AnimationDecoder, Delay, DynamicImage, Frame};
 use indicatif::ProgressIterator;
 use log::info;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{BufRead, BufReader, Read, Seek, Write};
 use std::path::Path;
 
 use crate::progress::default_progress_bar;
 
-pub fn read_gif_from_stream<R: Read>(stream: R) -> Vec<DynamicImage> {
+pub fn read_gif_from_stream<R: Read + BufRead + Seek>(stream: R) -> Vec<DynamicImage> {
     let decoder = GifDecoder::new(stream).unwrap();
     let frames = decoder.into_frames();
     let frames = frames.collect_frames().expect("error decoding gif");
@@ -20,7 +20,8 @@ pub fn read_gif_from_stream<R: Read>(stream: R) -> Vec<DynamicImage> {
 
 pub fn read_gif(path: &Path) -> Vec<DynamicImage> {
     let fp = File::open(path).unwrap();
-    read_gif_from_stream(fp)
+    let buf_reader = BufReader::new(fp);
+    read_gif_from_stream(buf_reader)
 }
 
 pub fn write_gif_to_stream<W: Write>(stream: W, frames: &[DynamicImage], fps: f64) {
