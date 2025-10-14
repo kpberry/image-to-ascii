@@ -100,7 +100,7 @@ pub fn direction_and_intensity_convert(font: &Font, chunk: &[f32]) -> char {
         .iter()
         .map(|c| {
             let grad = -((x_dir - c.direction.0).powi(2) + (y_dir - c.direction.1).powi(2)).sqrt();
-            (max_direction - grad) / (1. + (intensity - c.intensity).powf(2.))
+            (max_direction - grad) / (1. + (intensity - c.intensity).abs())
         })
         .collect();
 
