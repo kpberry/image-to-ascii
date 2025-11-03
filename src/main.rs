@@ -76,6 +76,11 @@ const FONTS: [(&str, &str); 2] = [
 fn main() {
     env_logger::init();
 
+    // On Windows, this is unset, but the windows terminal should support truecolor.
+    if std::env::var("COLORTERM").is_err() {
+        std::env::set_var("COLORTERM", "truecolor");
+    }
+
     let args = Cli::parse();
 
     let width = args.width;
