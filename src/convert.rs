@@ -6,11 +6,11 @@ use image::{DynamicImage, GrayImage, Luma, Rgb, RgbImage, Rgba};
 
 use crate::font::Font;
 use crate::metrics::{
-    avg_color_score, denoised_jaccard_score, movement_toward_clear,
+    avg_color_score, denoised_jaccard_score, dot_score, jaccard_score, movement_toward_clear,
     occlusion_score, Metric,
 };
 use crate::metrics_simd::{
-    dot_score, jaccard_score,
+    dot_score as simd_dot_score, jaccard_score as simd_jaccard_score,
 };
 
 use crate::image::{Image, LumaImage};
@@ -41,6 +41,14 @@ pub fn dot_convert(font: &Font, chunk: &[f32]) -> char {
 
 pub fn jaccard_convert(font: &Font, chunk: &[f32]) -> char {
     score_convert(jaccard_score, font, chunk)
+}
+
+pub fn simd_dot_convert(font: &Font, chunk: &[f32]) -> char {
+    score_convert(simd_dot_score, font, chunk)
+}
+
+pub fn simd_jaccard_convert(font: &Font, chunk: &[f32]) -> char {
+    score_convert(simd_jaccard_score, font, chunk)
 }
 
 pub fn intensity_jaccard_convert(font: &Font, chunk: &[f32]) -> char {
@@ -138,6 +146,8 @@ pub fn get_converter(metric: &str) -> Converter {
     match &metric[..] {
         "dot" => dot_convert,
         "jaccard" => jaccard_convert,
+        "simd_dot" => simd_dot_convert,
+        "simd_jaccard" => simd_jaccard_convert,
         "occlusion" => occlusion_convert,
         "color" => color_convert,
         "clear" => clear_convert,
