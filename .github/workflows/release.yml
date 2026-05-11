@@ -21,14 +21,14 @@ jobs:
 
     - name: Upload Linux/MacOS executable
       if: runner.os == 'Linux' || runner.os == 'macOS'
-      uses: actions/upload-artifact@v3.1.0
+      uses: actions/upload-artifact@v7.0.1
       with: 
         name: ${{ matrix.os }} executable
         path: target/release/image-to-ascii
 
     - name: Upload Windows executable
       if: runner.os == 'Windows'
-      uses: actions/upload-artifact@v3.1.0
+      uses: actions/upload-artifact@v7.0.1
       with: 
         name: ${{ matrix.os }} executable
         path: target/release/image-to-ascii.exe
